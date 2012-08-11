@@ -1,0 +1,17 @@
+server:
+  type: fcgi          # Types are fcgi for a FastCGI server and standalone for a simple HTTP server
+  bind: "127.0.0.1"   # Address to bind to.
+  port: 9000          # Port for listening to.
+
+document:
+  pages: "./pages"
+  templates: "./templates"
+  webroot: "./webroot"
+
+page:
+  title: Default title
+  content:
+
+http:
+  default:
+    content_type: text/plain
