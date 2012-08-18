@@ -1,17 +1,12 @@
+# This is a YAML file.
+# Please use two-space tabs instead of the \t character.
+
 server:
-  type: fcgi          # Types are fcgi for a FastCGI server and standalone for a simple HTTP server
-  bind: "127.0.0.1"   # Address to bind to.
+  bind: 127.0.0.1     # Address to bind to.
   port: 9000          # Port for listening to.
+  type: fcgi          # Types are "fcgi" for a FastCGI server and "standalone" for a simple HTTP server.
 
-document:
-  pages: "./pages"
-  templates: "./templates"
-  webroot: "./webroot"
+hosts:
+  default: "./default"
+# beta.example.org: /home/users/projects/beta.example.org
 
-page:
-  title: Default title
-  content:
-
-http:
-  default:
-    content_type: text/plain

@@ -1,3 +1,26 @@
+/*
+  Copyright (c) 2012 José Carlos Nieto, http://xiam.menteslibres.org/
+
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package host
 
 import (
@@ -11,6 +34,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -35,10 +59,11 @@ type Template struct {
 	mtime time.Time
 }
 
-var extensions = []string{".html", ".md", ""}
+var extensions = []string{".md", ".html", ".txt"}
 
 func (host *Host) url(url string) string {
-	return "/" + strings.TrimLeft(url, "/")
+	//return "/" + strings.TrimLeft(url, "/")
+	return url
 }
 
 func (host *Host) setting(path string) interface{} {
@@ -62,9 +87,80 @@ func (host *Host) link(url, text string) template.HTML {
 	return template.HTML(fmt.Sprintf("<a href=\"%s\">%s</a>", host.url(url), text))
 }
 
+func guessFile(file string, descend bool) (string, os.FileInfo) {
+	stat, err := os.Stat(file)
+
+	file = strings.TrimRight(file, PS)
+
+	fmt.Printf("%v\n", file)
+
+	if descend == true {
+		if err == nil {
+			if stat.IsDir() {
+				f, s := guessFile(file+PS+"index", true)
+				if s != nil {
+					return f, s
+				}
+			}
+			return file, stat
+		} else {
+			for _, extension := range extensions {
+				f, s := guessFile(file+extension, false)
+				if s != nil {
+					return f, s
+				}
+			}
+		}
+	} else {
+		if err == nil {
+			return file, stat
+		}
+	}
+
+	return "", nil
+}
+
+func (host *Host) readFile(file string) ([]byte, error) {
+	stat, err := os.Stat(file)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if stat.IsDir() == false {
+
+		fp, _ := os.Open(file)
+		defer fp.Close()
+
+		buf := make([]byte, stat.Size())
+
+		_, err := fp.Read(buf)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if strings.HasSuffix(file, ".md") {
+			return md.MarkdownCommon(buf), nil
+		} else {
+			return buf, nil
+		}
+
+	}
+
+	return nil, nil
+}
+
 func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
+	var localFile string
+
+	// Updating settings and template files that have changed.
 	host.Update()
+
+	// Checking request path
+
+	fmt.Printf("path: %v\n", req.URL.Path)
 
 	// Requested path
 	reqpath := strings.Trim(req.URL.Path, "/")
@@ -72,89 +168,99 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s %s", req.Host, req.Method, reqpath)
 
 	// Trying to match a file on webroot/
-	localFile := host.DocumentRoot + PS + host.Settings.Get("document.webroot", "webroot").(string) + PS + reqpath
+	localFile = host.DocumentRoot + PS + host.Settings.Get("document.webroot", "webroot").(string) + PS + reqpath
 	stat, err := os.Stat(localFile)
 
 	if err == nil {
 		// File exists
 		if stat.IsDir() == false {
-			// Exists and it's not a directory, let's just serve it.
+			// Exists and it's not a directory, let's serve it.
 			log.Printf("-> Serving file %s.", localFile)
 			http.ServeFile(w, req, localFile)
 			return
 		}
 	}
 
-	// File does not exists or it's a directory, trying to find a page that fits.
-	if reqpath == "" {
-		reqpath = "index"
-	}
+	tryName := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.pages", "pages").(string), PS) + PS + reqpath
 
-	localPage := host.DocumentRoot + PS + host.Settings.Get("document.pages", "pages").(string) + PS + reqpath
+	stat, err = os.Stat(tryName)
 
-	testFile := ""
+	localFile, stat = guessFile(tryName, true)
 
-	for _, extension := range extensions {
+	if stat != nil {
 
-		testFile = localPage + extension
+		if reqpath != "" {
+			if stat.IsDir() == false {
+				if strings.HasSuffix(req.URL.Path, "/") == true {
+					http.Redirect(w, req, "/"+reqpath, 301)
+				}
+			} else {
+				if strings.HasSuffix(req.URL.Path, "/") == false {
+					http.Redirect(w, req, req.URL.Path+"/", 301)
+				}
+			}
+		}
 
-		stat, err := os.Stat(testFile)
+		p := &page.Page{}
+
+		p.FilePath = localFile
+		p.BasePath = req.URL.Path
+
+		if stat.IsDir() == false {
+			p.FileDir = path.Dir(localFile)
+			p.BasePath = path.Dir(req.URL.Path)
+		} else {
+			p.FileDir = p.FilePath
+		}
+
+		content, err := host.readFile(localFile)
 
 		if err == nil {
-
-			contentType := host.Settings.GetString("http.default.content_type")
-
-			p := &page.Page{}
-
-			fp, _ := os.Open(testFile)
-			defer fp.Close()
-
-			p.FilePath = localPage
-			p.BasePath = req.URL.Path
-
-			if stat.IsDir() == false {
-
-				p.FileDir = path.Dir(p.FilePath)
-
-				buf := make([]byte, stat.Size())
-
-				_, err := fp.Read(buf)
-
-				if err != nil {
-					panic(err)
-				}
-
-				switch extension {
-				case ".html":
-					contentType = "text/html"
-					p.Content = template.HTML(buf)
-				case ".md":
-					contentType = "text/html"
-					p.Content = template.HTML(md.MarkdownCommon(buf))
-				default:
-					fmt.Errorf("Unhandled extension: %v\n", extension)
-				}
-
-			} else {
-
-				contentType = "text/html"
-				p.FileDir = p.FilePath
-
-			}
-
-			p.CreateMenu()
-			p.CreateSideMenu()
-
-			log.Printf("-> Serving file %s.", fp.Name())
-
-			w.Header().Set("Content-Type", contentType)
-
-			if err := host.Templates["index.tpl"].t.Execute(w, p); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			}
-
-			return
+			p.Content = template.HTML(content)
 		}
+
+		p.BasePath = strings.TrimRight(p.BasePath, "/") + "/"
+		p.FileDir = strings.TrimRight(p.FileDir, "/") + "/"
+
+		// werc-like header and footer.
+		hfile, hstat := guessFile(p.FileDir+"_header", true)
+
+		if hstat != nil {
+			hcontent, herr := host.readFile(hfile)
+			if herr == nil {
+				p.ContentHeader = template.HTML(hcontent)
+			}
+		}
+
+		// werc-like header and footer.
+		ffile, fstat := guessFile(p.FileDir+"_footer", true)
+
+		if fstat != nil {
+			fcontent, ferr := host.readFile(ffile)
+			if ferr == nil {
+				p.ContentFooter = template.HTML(fcontent)
+			}
+		}
+
+		if p.Content != "" {
+			title, _ := regexp.Compile(`<h[\d]>(.+)</h`)
+			found := title.FindStringSubmatch(string(p.Content))
+			if len(found) > 0 {
+				p.PageTitle = found[1]
+			}
+		}
+
+		p.CreateBreadCrumb()
+		p.CreateMenu()
+		p.CreateSideMenu()
+
+		log.Printf("-> Serving file %s.", localFile)
+
+		if err := host.Templates["index.tpl"].t.Execute(w, p); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+
+		return
 	}
 
 	log.Printf("-> Not found.")
@@ -227,7 +333,7 @@ func (host *Host) loadTemplates() bool {
 }
 
 func (host *Host) loadSettings() bool {
-	file := host.DocumentRoot + PS + "settings.yaml"
+	file := host.DocumentRoot + PS + "luminos.yaml"
 	_, err := os.Stat(file)
 	if err == nil {
 		host.Settings = yaml.Open(file)
@@ -242,23 +348,24 @@ func (host *Host) Update() bool {
 	return settings && templates
 }
 
-func New(req *http.Request) (*Host, error) {
+func New(req *http.Request, docroot string) (*Host, error) {
 	host := &Host{}
-	host.Name = req.Header.Get("Host")
+	host.Name = req.Host
 
-	// Great security risk.
-	host.DocumentRoot = req.Header.Get("Document-Root")
+	_, err := os.Stat(docroot)
 
-	if host.DocumentRoot == "" {
-		return nil, errors.New("Document-Root is null.")
-	}
+	if err == nil {
+		host.DocumentRoot = docroot
 
-	host.Templates = make(map[string]*Template)
+		host.Templates = make(map[string]*Template)
 
-	if host.Update() == true {
-		return host, nil
+		if host.Update() == true {
+			return host, nil
+		} else {
+			return nil, errors.New(fmt.Sprintf("Could not start host: %s", host.Name))
+		}
 	} else {
-		return nil, errors.New(fmt.Sprintf("Could not start host: %s", host.Name))
+		return nil, err
 	}
 
 	return nil, nil
