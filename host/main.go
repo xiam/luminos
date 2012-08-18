@@ -92,7 +92,7 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 
 	file = strings.TrimRight(file, PS)
 
-	fmt.Printf("%v\n", file)
+	//fmt.Printf("%v\n", file)
 
 	if descend == true {
 		if err == nil {
@@ -158,14 +158,10 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Updating settings and template files that have changed.
 	host.Update()
 
-	// Checking request path
-
-	fmt.Printf("path: %v\n", req.URL.Path)
+	log.Printf("%s: Routing request %s %s", req.Host, req.Method, req.URL.Path,)
 
 	// Requested path
 	reqpath := strings.Trim(req.URL.Path, "/")
-
-	log.Printf("%s %s %s", req.Host, req.Method, reqpath)
 
 	// Trying to match a file on webroot/
 	localFile = host.DocumentRoot + PS + host.Settings.Get("document.webroot", "webroot").(string) + PS + reqpath
@@ -175,13 +171,13 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// File exists
 		if stat.IsDir() == false {
 			// Exists and it's not a directory, let's serve it.
-			log.Printf("-> Serving file %s.", localFile)
+			log.Printf("%s: Serving file %s.", host.Name, localFile)
 			http.ServeFile(w, req, localFile)
 			return
 		}
 	}
 
-	tryName := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.pages", "pages").(string), PS) + PS + reqpath
+	tryName := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.htdocs", "htdocs").(string), PS) + PS + reqpath
 
 	stat, err = os.Stat(tryName)
 
@@ -254,7 +250,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		p.CreateMenu()
 		p.CreateSideMenu()
 
-		log.Printf("-> Serving file %s.", localFile)
+		log.Printf("%s: Serving file %s.", host.Name, localFile)
 
 		if err := host.Templates["index.tpl"].t.Execute(w, p); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -263,7 +259,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Printf("-> Not found.")
+	log.Printf("%s: Resource was not found.", host.Name)
 
 	http.Error(w, "Not found", 404)
 }
@@ -272,16 +268,19 @@ func (host *Host) loadTemplates() bool {
 	dir := host.DocumentRoot + PS + host.Settings.Get("document.templates", "templates").(string)
 
 	fp, err := os.Open(dir)
-	defer fp.Close()
 
 	if err != nil {
-		panic(err)
+		log.Printf("%s: %s", host.Name, err)
+		return false
 	}
+
+	defer fp.Close()
 
 	files, err := fp.Readdir(-1)
 
 	if err != nil {
-		panic(err)
+		log.Printf("%s: %s", host.Name, err)
+		return false
 	}
 
 	for _, file := range files {
@@ -293,10 +292,10 @@ func (host *Host) loadTemplates() bool {
 				if value.mtime == file.ModTime() {
 					continue
 				} else {
-					log.Printf("(Re)loading %s", tpl)
+					log.Printf("%s: (Re)loading %s", host.Name, tpl)
 				}
 			} else {
-				log.Printf("Loading %s", tpl)
+				log.Printf("%s: Loading %s", host.Name, tpl)
 			}
 
 			parsed := template.New(file.Name())
@@ -317,15 +316,15 @@ func (host *Host) loadTemplates() bool {
 					mtime: file.ModTime(),
 				}
 			} else {
-				log.Printf("Template error on file %s: %s", tpl, err.Error())
+				log.Printf("%s: Template error on file %s: %s", host.Name, tpl, err.Error())
 			}
 
 		}
 	}
 
 	if _, ok := host.Templates["index.tpl"]; ok == false {
-		log.Printf("Template %s could not be found.", dir+PS+"index.tpl")
-		panic("Could not start without index.tpl.")
+		log.Printf("%s: template %s could not be found.", host.Name, dir+PS+"index.tpl")
+		return false
 	}
 
 	return true
@@ -338,14 +337,20 @@ func (host *Host) loadSettings() bool {
 	if err == nil {
 		host.Settings = yaml.Open(file)
 		return true
+	} else {
+		log.Printf("%s: seems like %s does not exists.\n", host.Name, file)
 	}
 	return false
 }
 
 func (host *Host) Update() bool {
-	settings := host.loadSettings()
-	templates := host.loadTemplates()
-	return settings && templates
+	if host.loadSettings() == false {
+		return false
+	}
+	if host.loadTemplates() == false {
+		return false
+	}
+	return true
 }
 
 func New(req *http.Request, docroot string) (*Host, error) {

@@ -1,0 +1,13 @@
+page:
+  brand: "Luminos"
+  head:
+    title: "Luminos, a flexible markdown server"
+    short_title: "Luminos"
+  body:
+    title: "Luminos project"
+    menu:
+      - { text: "Getting started", url: "/getting-started" }
+      - { text: "Templates", url: "/templates" }
+      - { text: "Source code", url: "/source-code" }
+    menu_pull:
+      - { text: "Home", url: "/" }

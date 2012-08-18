@@ -34,11 +34,12 @@ import (
 )
 
 type Server struct {
+
 }
 
-var hosts = make(map[string]*host.Host)
+var settings *yaml.Yaml
 
-var settings = yaml.Open("settings.yaml")
+var hosts map[string] *host.Host
 
 func route(req *http.Request) *host.Host {
 	if _, ok := hosts[req.Host]; ok == false {
@@ -48,24 +49,27 @@ func route(req *http.Request) *host.Host {
 
 		docroot = settings.GetString(fmt.Sprintf("hosts/%s", req.Host))
 
-		if docroot != "" {
+		if docroot == "" {
+			// Trying to serve default host.
+			docroot = settings.GetString("hosts/default")
+			if docroot == "" {
+				// Default host is not defined.
+				return nil
+			} else {
+				// Serving default host.
+				hosts[req.Host], err = host.New(req, docroot)
+				if err != nil {
+					delete(hosts, req.Host)
+					log.Printf("Error loading default host.")
+					return nil
+				}
+			}
+		} else {
 			// Host is defined in settings.yaml
 			hosts[req.Host], err = host.New(req, docroot)
 			if err != nil {
+				delete(hosts, req.Host)
 				log.Printf("Requested host %s does not exists.", req.Host)
-				return nil
-			}
-		} else {
-			// Serving default host.
-			docroot = settings.GetString("hosts/default")
-			if docroot != "" {
-				hosts[req.Host], err = host.New(req, docroot)
-				if err != nil {
-					log.Printf("Default host was not found.")
-					return nil
-				}
-			} else {
-				// Default host is not defined.
 				return nil
 			}
 		}
@@ -79,11 +83,14 @@ func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if h != nil {
 		h.ServeHTTP(w, req)
 	} else {
-		log.Printf("Could not route host %s.\n", req.Host)
+		log.Printf("%s: failed to serve.\n", req.Host)
 	}
 }
 
 func main() {
+	hosts = make(map[string]*host.Host)
+
+	settings = yaml.Open("settings.yaml")
 
 	dtype := settings.GetString("server/type")
 
