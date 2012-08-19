@@ -25,16 +25,24 @@ package main
 
 import (
 	"fmt"
+	"flag"
 	"github.com/xiam/gosexy/yaml"
 	"github.com/xiam/luminos/host"
 	"log"
 	"net"
+	"os"
 	"net/http"
 	"net/http/fcgi"
 )
 
+var version = "0.0999"
+
 type Server struct {
 }
+
+var flagHelp			= flag.Bool("help", false, "Shows command line hints.")
+var flagSettings	= flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
+var flagVersion		= flag.Bool("version", false, "Shows software version.")
 
 var settings *yaml.Yaml
 
@@ -87,6 +95,19 @@ func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	flag.Parse()
+
+	if *flagHelp == true {
+		fmt.Printf("Showing %v usage.\n", os.Args[0])
+		flag.PrintDefaults()
+		return
+	}
+
+	if *flagVersion == true {
+		fmt.Printf("%v version: %s\n", os.Args[0], version)
+		return
+	}
+
 	hosts = make(map[string]*host.Host)
 
 	settings = yaml.Open("settings.yaml")
