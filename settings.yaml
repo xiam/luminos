@@ -2,9 +2,9 @@
 # Please use two-space tabs instead of the \t character.
 
 server:
-  bind: 127.0.0.1     # Address to bind to.
-  port: 9000          # Port for listening to.
-  type: standalone    # Types are "fastcgi" for a FastCGI server and "standalone" for a simple HTTP server.
+  bind: "0.0.0.0"       # Address to bind to, listen all by default.
+  port: "9000"          # Port for listening to.
+  type: "standalone"    # Types are "fastcgi" for a FastCGI server and "standalone" for a simple HTTP server.
 
 hosts:
   default: "./default"
