@@ -24,9 +24,11 @@
 package page
 
 import (
+	"fmt"
 	"html/template"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -45,8 +47,8 @@ type Page struct {
 	CurrentPage   map[string]interface{}
 	FilePath      string
 	FileDir       string
-	PageTitle     string
 	BasePath      string
+	IsHome        bool
 }
 
 type fileList []os.FileInfo
@@ -133,19 +135,25 @@ func fileFilter(f os.FileInfo) bool {
 	return false
 }
 
+func createTitle(s string) string {
+	s = removeKnownExtension(s)
+
+	re, _ := regexp.Compile("[-_]")
+	s = re.ReplaceAllString(s, " ")
+
+	return strings.Title(s[:1]) + s[1:]
+}
+
 func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{} {
 	item := map[string]interface{}{}
 
 	if file.IsDir() == true {
 		item["link"] = prefix + file.Name() + "/"
-		item["text"] = file.Name()
 	} else {
-		item["link"] = prefix + file.Name()
-		item["text"] = file.Name()
+		item["link"] = prefix + removeKnownExtension(file.Name())
 	}
 
-	item["link"] = removeKnownExtension(item["link"].(string))
-	item["text"] = removeKnownExtension(item["text"].(string))
+	item["text"] = createTitle(file.Name())
 
 	return item
 }
@@ -167,7 +175,7 @@ func (p *Page) CreateBreadCrumb() {
 		if chunk != "" {
 			item := map[string]interface{}{}
 			item["link"] = prefix + "/" + chunk + "/"
-			item["text"] = strings.Title(chunk)
+			item["text"] = createTitle(chunk)
 			prefix = prefix + PS + chunk
 			p.BreadCrumb = append(p.BreadCrumb, item)
 			p.CurrentPage = item
@@ -204,9 +212,7 @@ func (p *Page) CreateSideMenu() {
 
 	for _, file := range files {
 		item = p.CreateLink(file, p.BasePath)
-		// Ignoring index.
-		if item["text"].(string) != "index" {
-			item["text"] = strings.Title(item["text"].(string))
+		if strings.ToLower(item["text"].(string)) != "index" {
 			p.SideMenu = append(p.SideMenu, item)
 		}
 	}

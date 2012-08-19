@@ -158,13 +158,16 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Updating settings and template files that have changed.
 	host.Update()
 
-	log.Printf("%s: Routing request %s %s", req.Host, req.Method, req.URL.Path,)
+	log.Printf("%s: Routing request %s %s", req.Host, req.Method, req.URL.Path)
 
 	// Requested path
 	reqpath := strings.Trim(req.URL.Path, "/")
 
 	// Trying to match a file on webroot/
-	localFile = host.DocumentRoot + PS + host.Settings.Get("document.webroot", "webroot").(string) + PS + reqpath
+	webroot := host.DocumentRoot + PS + host.Settings.Get("document.webroot", "webroot").(string)
+
+	localFile = webroot + PS + reqpath
+
 	stat, err := os.Stat(localFile)
 
 	if err == nil {
@@ -177,11 +180,13 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	tryName := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.htdocs", "htdocs").(string), PS) + PS + reqpath
+	docroot := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.htdocs", "htdocs").(string), PS)
 
-	stat, err = os.Stat(tryName)
+	testFile := docroot + PS + reqpath
 
-	localFile, stat = guessFile(tryName, true)
+	stat, err = os.Stat(testFile)
+
+	localFile, stat = guessFile(testFile, true)
 
 	if stat != nil {
 
@@ -202,11 +207,14 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		p.FilePath = localFile
 		p.BasePath = req.URL.Path
 
+		relPath := localFile[len(docroot):]
+
 		if stat.IsDir() == false {
 			p.FileDir = path.Dir(localFile)
-			p.BasePath = path.Dir(req.URL.Path)
+			p.BasePath = path.Dir(relPath)
 		} else {
-			p.FileDir = p.FilePath
+			p.FileDir = localFile
+			p.BasePath = relPath
 		}
 
 		content, err := host.readFile(localFile)
@@ -215,8 +223,8 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			p.Content = template.HTML(content)
 		}
 
-		p.BasePath = strings.TrimRight(p.BasePath, "/") + "/"
-		p.FileDir = strings.TrimRight(p.FileDir, "/") + "/"
+		p.FileDir = strings.TrimRight(p.FileDir, PS) + PS
+		p.BasePath = strings.TrimRight(p.BasePath, PS) + PS
 
 		// werc-like header and footer.
 		hfile, hstat := guessFile(p.FileDir+"_header", true)
@@ -226,6 +234,10 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if herr == nil {
 				p.ContentHeader = template.HTML(hcontent)
 			}
+		}
+
+		if p.BasePath == "/" {
+			p.IsHome = true
 		}
 
 		// werc-like header and footer.
@@ -242,7 +254,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			title, _ := regexp.Compile(`<h[\d]>(.+)</h`)
 			found := title.FindStringSubmatch(string(p.Content))
 			if len(found) > 0 {
-				p.PageTitle = found[1]
+				p.Title = found[1]
 			}
 		}
 

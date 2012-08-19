@@ -34,12 +34,11 @@ import (
 )
 
 type Server struct {
-
 }
 
 var settings *yaml.Yaml
 
-var hosts map[string] *host.Host
+var hosts map[string]*host.Host
 
 func route(req *http.Request) *host.Host {
 	if _, ok := hosts[req.Host]; ok == false {
@@ -83,7 +82,7 @@ func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if h != nil {
 		h.ServeHTTP(w, req)
 	} else {
-		log.Printf("%s: failed to serve.\n", req.Host)
+		log.Printf("Failed to serve host %s.\n", req.Host)
 	}
 }
 
@@ -92,22 +91,35 @@ func main() {
 
 	settings = yaml.Open("settings.yaml")
 
-	dtype := settings.GetString("server/type")
+	serverType := settings.GetString("server/type")
 
-	switch dtype {
-	case "fcgi":
-		address := fmt.Sprintf("%s:%d", settings.GetString("server/bind"), settings.GetInt("server/port"))
-		listener, err := net.Listen("tcp", address)
-		defer listener.Close()
+	address := fmt.Sprintf("%s:%d", settings.GetString("server/bind"), settings.GetInt("server/port"))
+	listener, err := net.Listen("tcp", address)
 
+	if err != nil {
+		log.Fatalf("Failed to bind on %s.", address)
+	}
+
+	defer listener.Close()
+
+	switch serverType {
+	case "fastcgi":
 		if err == nil {
-			log.Printf("FCGI server listening at %s.", address)
+			log.Printf("FastCGI server listening at %s.", address)
 			fcgi.Serve(listener, &Server{})
 		} else {
-			log.Printf("Failed to start FCGI server.")
-			panic(err)
+			log.Fatalf("Failed to start FastCGI server.")
+		}
+	case "standalone":
+		if err == nil {
+			log.Printf("HTTP server listening at %s.", address)
+			http.Serve(listener, &Server{})
+		} else {
+			log.Fatalf("Failed to start HTTP server.")
 		}
 	default:
-		log.Printf("Unknown server type %s.", dtype)
+		log.Fatalf("Unknown server type %s.", serverType)
 	}
+
+	log.Printf("Exiting...")
 }

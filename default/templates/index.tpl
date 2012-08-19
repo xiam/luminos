@@ -5,11 +5,15 @@
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
-    {{ if .PageTitle }}
-      <title>
-        {{ .PageTitle }} {{ if setting "page/head/short_title" }} // {{ setting "page/head/short_title" }} {{ end }}</title>
+    {{ if .IsHome }}
+        <title>{{ setting "page/head/title" }}</title>
     {{ else }}
-      <title>{{ setting "page/head/title" }}</title>
+      {{ if .Title }}
+        <title>
+          {{ .Title }} {{ if setting "page/head/title" }} // {{ setting "page/head/title" }} {{ end }}</title>
+      {{ else }}
+        <title>{{ setting "page/head/title" }}</title>
+      {{ end }}
     {{ end }}
 
     <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
@@ -58,6 +62,7 @@
 
   <body>
 
+
     <script type="text/javascript">
       $(document).ready(prettyPrint);
     </script>
@@ -90,36 +95,72 @@
       </div>
     </div>
 
-    <!--
-    <div class="hero-unit">
-      <h1>Heading</h1>
-      <p>Tagline</p>
-      <p>
-        <a class="btn btn-primary btn-large">
-          Learn more
-        </a>
-      </p>
-    </div>
 
-    <div class="page-header">
-      <h1>Example page header</h1>
-    </div>
-    -->
+    {{ if .IsHome }}
 
-    {{ if .BreadCrumb }}
-      <ul class="breadcrumb menu">
-        {{ range .BreadCrumb }}
-          <li><a href="{{ url .link }}">{{ .text }}</a> <span class="divider">/</span></li>
-        {{ end }}
-      </ul>
-    {{ end }}
+      <div class="hero-unit">
+        <h1>Luminos, markdown server</h1>
+        <p>
+          A tiny server that translates your markdown files into good-ol'-HTML.
+        </p>
+        <p class="pull-right">
+          <a href="/getting-started" class="btn btn-primary btn-large">
+            Get started
+          </a>
+          <a href="/download" class="btn btn-large">
+            Download
+          </a>
+        </p>
+      </div>
 
-    <div class="container-fluid">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="span8">
+            {{ .ContentHeader }}
 
-      <div class="row">
-        {{ if .SideMenu }}
-          {{ if .Content }}
-            <div class="span3">
+            {{ .Content }}
+
+            {{ .ContentFooter }}
+          </div>
+        </div>
+      </div>
+
+    {{ else }}
+
+      {{ if .BreadCrumb }}
+        <ul class="breadcrumb menu">
+          {{ range .BreadCrumb }}
+            <li><a href="{{ url .link }}">{{ .text }}</a> <span class="divider">/</span></li>
+          {{ end }}
+        </ul>
+      {{ end }}
+
+      <div class="container-fluid">
+
+        <div class="row">
+          {{ if .SideMenu }}
+            {{ if .Content }}
+              <div class="span3">
+                  <ul class="nav nav-list menu">
+                    {{ range .SideMenu }}
+                      <li>
+                        <a href="{{ url .link }}">{{ .text }}</a>
+                      </li>
+                    {{ end }}
+                  </ul>
+              </div>
+              <div class="span8">
+                {{ .ContentHeader }}
+
+                {{ .Content }}
+
+                {{ .ContentFooter }}
+              </div>
+            {{ else }}
+              <div class="span11">
+                {{ if .CurrentPage }}
+                  <h1>{{ .CurrentPage.text }}</h1>
+                {{ end }}
                 <ul class="nav nav-list menu">
                   {{ range .SideMenu }}
                     <li>
@@ -127,40 +168,22 @@
                     </li>
                   {{ end }}
                 </ul>
-            </div>
-            <div class="span8">
+              </div>
+            {{ end }}
+          {{ else }}
+            <div class="span11">
               {{ .ContentHeader }}
 
               {{ .Content }}
 
               {{ .ContentFooter }}
             </div>
-          {{ else }}
-            <div class="span11">
-              {{ if .CurrentPage }}
-                <h1>{{ .CurrentPage.text }}</h1>
-              {{ end }}
-              <ul class="nav nav-list menu">
-                {{ range .SideMenu }}
-                  <li>
-                    <a href="{{ url .link }}">{{ .text }}</a>
-                  </li>
-                {{ end }}
-              </ul>
-            </div>
           {{ end }}
-        {{ else }}
-          <div class="span11">
-            {{ .ContentHeader }}
+        </div>
 
-            {{ .Content }}
-
-            {{ .ContentFooter }}
-          </div>
-        {{ end }}
       </div>
 
-    </div>
+    {{ end }}
 
     {{ if setting "page/body/scripts/footer" }}
       <script type="text/javascript">
