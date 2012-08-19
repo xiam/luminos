@@ -93,8 +93,15 @@ func main() {
 
 	serverType := settings.GetString("server/type")
 
-	address := fmt.Sprintf("%s:%d", settings.GetString("server/bind"), settings.GetInt("server/port"))
-	listener, err := net.Listen("tcp", address)
+	domain	:= "unix"
+	address := settings.GetString("server/socket")
+
+	if address == "" {
+		domain = "tcp"
+		address = fmt.Sprintf("%s:%d", settings.GetString("server/bind"), settings.GetInt("server/port"))
+	}
+
+	listener, err := net.Listen(domain, address)
 
 	if err != nil {
 		log.Fatalf("Failed to bind on %s.", address)

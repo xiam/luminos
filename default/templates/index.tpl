@@ -115,7 +115,7 @@
 
       <div class="container-fluid">
         <div class="row">
-          <div class="span8">
+          <div class="span11">
             {{ .ContentHeader }}
 
             {{ .Content }}

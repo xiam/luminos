@@ -4,7 +4,7 @@
 server:
   bind: 127.0.0.1     # Address to bind to.
   port: 9000          # Port for listening to.
-  type: fastcgi       # Types are "fastcgi" for a FastCGI server and "standalone" for a simple HTTP server.
+  type: standalone    # Types are "fastcgi" for a FastCGI server and "standalone" for a simple HTTP server.
 
 hosts:
   default: "./default"

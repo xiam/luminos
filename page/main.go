@@ -24,7 +24,6 @@
 package page
 
 import (
-	"fmt"
 	"html/template"
 	"os"
 	"path"
