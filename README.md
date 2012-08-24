@@ -1,4 +1,4 @@
-# What is Luminos?
+# Luminos, markdown server
 
 Luminos is a server than transforms [markdown][3] code into HTML code right away, it was highly inspired by [werc][1] but build with less options in mind.
 
@@ -11,7 +11,7 @@ Here are some of Luminos' features:
 * Works out of the box on Linux, FreeBSD, OSX <s>and Windows</s> with or without an external web server.
 * Written in [Go][2] and released as an Open Source [project][4].
 
-# Building Luminos from source
+## Building Luminos from source
 
 Before building from source, please take a look at the Luminos [project page][5].
 
@@ -21,7 +21,7 @@ Before building from source, please take a look at the Luminos [project page][5]
     cd dist/
     ./luminosd
 
-# License
+## License
 
 Luminos is released under the MIT License:
 
