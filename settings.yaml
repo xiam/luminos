@@ -3,10 +3,10 @@
 
 server:
   bind: "0.0.0.0"       # Address to bind to, listen all by default.
-  port: "9000"          # Port for listening to.
+  port: 9000            # Port for listening to.
   type: "standalone"    # Types are "fastcgi" for a FastCGI server and "standalone" for a simple HTTP server.
 
 hosts:
   default: "./default"
-# beta.example.org: /home/jhondoe/projects/beta.example.org
+# beta.example.org: /home/user/projects/beta.example.org
 

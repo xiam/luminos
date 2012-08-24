@@ -43,16 +43,25 @@ const (
 	PS = string(os.PathSeparator)
 )
 
+// Virtual host that serves document of a given directory.
 type Host struct {
-	Name         string
+	// Host name
+	Name string
+	// Main directory
 	DocumentRoot string
-	Settings     *yaml.Yaml
-	Templates    map[string]*Template
+	// Settings
+	Settings *yaml.Yaml
+	// Templates (not fully functional yet)
+	Templates map[string]*Template
+	// Function map for templates.
 	template.FuncMap
+	// Standard request.
 	*http.Request
+	// Standard response writer.
 	http.ResponseWriter
 }
 
+// A template
 type Template struct {
 	path  string
 	t     *template.Template
@@ -61,38 +70,53 @@ type Template struct {
 
 var extensions = []string{".md", ".html", ".txt"}
 
+// Function for funcMap that returns an absolute or relative URL.
 func (host *Host) url(url string) string {
-	//return "/" + strings.TrimLeft(url, "/")
+	if host.isExternalLink(url) == false {
+		return "/" + strings.TrimLeft(url, "/")
+	}
 	return url
 }
 
+func (host *Host) isExternalLink(url string) bool {
+	test, _ := regexp.Compile(`^[a-z0-9]+:\/\/`)
+	return test.MatchString(url)
+}
+
+// Function for funcMap that returns a setting value.
 func (host *Host) setting(path string) interface{} {
 	return host.Settings.Get(path, nil)
 }
 
+// Function for funcMap that returns an array of settings.
 func (host *Host) settings(path string) []interface{} {
 	val := host.Settings.Get(path, nil).([]interface{})
 	return val
 }
 
+// Function for funcMap that writes text as Javascript.
 func jstext(text string) template.JS {
 	return template.JS(text)
 }
 
+// Function for funcMap that writes text as plain HTML.
 func htmltext(text string) template.HTML {
 	return template.HTML(text)
 }
 
+// Function for funcMap that writes links.
 func (host *Host) link(url, text string) template.HTML {
-	return template.HTML(fmt.Sprintf("<a href=\"%s\">%s</a>", host.url(url), text))
+	if host.isExternalLink(url) {
+		return template.HTML(fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, host.url(url), text))
+	}
+	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, host.url(url), text))
 }
 
+// Checks for files names and returns a guessed name.
 func guessFile(file string, descend bool) (string, os.FileInfo) {
 	stat, err := os.Stat(file)
 
 	file = strings.TrimRight(file, PS)
-
-	//fmt.Printf("%v\n", file)
 
 	if descend == true {
 		if err == nil {
@@ -120,6 +144,7 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 	return "", nil
 }
 
+// Reads a file, if the file has the .md extension the contents are parsed and HTML is returned.
 func (host *Host) readFile(file string) ([]byte, error) {
 	stat, err := os.Stat(file)
 
@@ -151,6 +176,7 @@ func (host *Host) readFile(file string) ([]byte, error) {
 	return nil, nil
 }
 
+// A simple ServeHTTP.
 func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var localFile string
@@ -180,7 +206,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	docroot := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.htdocs", "htdocs").(string), PS)
+	docroot := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.markdown", "markdown").(string), PS)
 
 	testFile := docroot + PS + reqpath
 
@@ -276,6 +302,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	http.Error(w, "Not found", 404)
 }
 
+// Loads templates with .tpl extension from the templates directory. At this moment only index.tpl is expected.
 func (host *Host) loadTemplates() bool {
 	dir := host.DocumentRoot + PS + host.Settings.Get("document.templates", "templates").(string)
 
@@ -343,6 +370,7 @@ func (host *Host) loadTemplates() bool {
 
 }
 
+// Loads settings into Host.Settings
 func (host *Host) loadSettings() bool {
 	file := host.DocumentRoot + PS + "luminos.yaml"
 	_, err := os.Stat(file)
@@ -355,6 +383,7 @@ func (host *Host) loadSettings() bool {
 	return false
 }
 
+// Reloads templates and settings.
 func (host *Host) Update() bool {
 	if host.loadSettings() == false {
 		return false
@@ -365,6 +394,7 @@ func (host *Host) Update() bool {
 	return true
 }
 
+// Creates and returns a host.
 func New(req *http.Request, docroot string) (*Host, error) {
 	host := &Host{}
 	host.Name = req.Host

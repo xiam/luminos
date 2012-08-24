@@ -24,37 +24,49 @@
 package main
 
 import (
-	"fmt"
 	"flag"
+	"fmt"
 	"github.com/xiam/gosexy/yaml"
 	"github.com/xiam/luminos/host"
 	"log"
 	"net"
-	"os"
 	"net/http"
 	"net/http/fcgi"
+	"os"
+	"strings"
 )
 
-var version = "0.0999"
+var version = "0.9991"
 
 type Server struct {
 }
 
-var flagHelp			= flag.Bool("help", false, "Shows command line hints.")
-var flagSettings	= flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
-var flagVersion		= flag.Bool("version", false, "Shows software version.")
+// Command line flags.
+var flagHelp = flag.Bool("help", false, "Shows command line hints.")
+var flagSettings = flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
+var flagVersion = flag.Bool("version", false, "Shows software version.")
 
+// Global settings.
 var settings *yaml.Yaml
 
+// Host map.
 var hosts map[string]*host.Host
 
+// Dispatches a request and returns the appropriate host.
 func route(req *http.Request) *host.Host {
-	if _, ok := hosts[req.Host]; ok == false {
+
+	name := req.Host
+
+	if strings.Contains(name, ":") {
+		name = name[0:strings.LastIndex(name, ":")]
+	}
+
+	if _, ok := hosts[name]; ok == false {
 
 		var err error
 		var docroot string
 
-		docroot = settings.GetString(fmt.Sprintf("hosts/%s", req.Host))
+		docroot = settings.GetString(fmt.Sprintf("hosts/%s", name))
 
 		if docroot == "" {
 			// Trying to serve default host.
@@ -64,27 +76,28 @@ func route(req *http.Request) *host.Host {
 				return nil
 			} else {
 				// Serving default host.
-				hosts[req.Host], err = host.New(req, docroot)
+				hosts[name], err = host.New(req, docroot)
 				if err != nil {
-					delete(hosts, req.Host)
+					delete(hosts, name)
 					log.Printf("Error loading default host.")
 					return nil
 				}
 			}
 		} else {
 			// Host is defined in settings.yaml
-			hosts[req.Host], err = host.New(req, docroot)
+			hosts[name], err = host.New(req, docroot)
 			if err != nil {
-				delete(hosts, req.Host)
-				log.Printf("Requested host %s does not exists.", req.Host)
+				delete(hosts, name)
+				log.Printf("Requested host %s does not exists.", name)
 				return nil
 			}
 		}
 
 	}
-	return hosts[req.Host]
+	return hosts[name]
 }
 
+// Routes a request and lets the host handle it.
 func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h := route(req)
 	if h != nil {
@@ -94,6 +107,7 @@ func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Starts up Luminos.
 func main() {
 	flag.Parse()
 
@@ -110,11 +124,11 @@ func main() {
 
 	hosts = make(map[string]*host.Host)
 
-	settings = yaml.Open("settings.yaml")
+	settings = yaml.Open(*flagSettings)
 
 	serverType := settings.GetString("server/type")
 
-	domain	:= "unix"
+	domain := "unix"
 	address := settings.GetString("server/socket")
 
 	if address == "" {

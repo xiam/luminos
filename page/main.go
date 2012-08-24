@@ -32,24 +32,54 @@ import (
 	"strings"
 )
 
+// This structure holds information on the current document served by Luminos.
 type Page struct {
-	Title         string
-	Header        template.HTML
-	Footer        template.HTML
-	Sidebar       template.HTML
-	Content       template.HTML
+
+	// Page title, guessed from the current document. (Looks for the first H1, H2, ..., H6 tag)
+	Title string
+
+	// The HTML of the current document.
+	Content template.HTML
+
+	// The HTML of the _header.md or _header.html file on the current document's directory.
 	ContentHeader template.HTML
+
+	// The HTML of the _footer.md or _footer.html file on the current document's directory.
 	ContentFooter template.HTML
-	MenuContents  []map[string]interface{}
-	SideMenu      []map[string]interface{}
-	BreadCrumb    []map[string]interface{}
-	CurrentPage   map[string]interface{}
-	FilePath      string
-	FileDir       string
-	BasePath      string
-	IsHome        bool
+
+	// An array of maps that contains names and links of all the items on the document root.
+	// Names begginning with "." or "_" are ignored in this list.
+	Menu []map[string]interface{}
+
+	// An array of maps that contains names and links of all the items on the current document's directory.
+	// Names begginning with "." or "_" are ignored in this list.
+	SideMenu []map[string]interface{}
+
+	// An array of maps that contains names and links of the current document's path.
+	BreadCrumb []map[string]interface{}
+
+	// A map that contains name and link of the current page.
+	CurrentPage map[string]interface{}
+
+	// Absolute path of the current document.
+	FilePath string
+
+	// Absolute parent directory of the current document.
+	FileDir string
+
+	// Relative path of the current document.
+	BasePath string
+
+	// Relative parent directory of the current document.
+	BaseDir string
+
+	// True if the current document is / (home).
+	IsHome bool
 }
 
+var extensions = []string{".html", ".md", ""}
+
+// Just a list of files that can be sorted.
 type fileList []os.FileInfo
 
 func (f fileList) Len() int {
@@ -66,12 +96,11 @@ func (f fileList) Swap(i, j int) {
 
 type byName struct{ fileList }
 
-var extensions = []string{".html", ".md", ""}
-
 const (
 	PS = string(os.PathSeparator)
 )
 
+// Strips out known extensions for a given file name.
 func removeKnownExtension(s string) string {
 	fileExt := path.Ext(s)
 
@@ -86,6 +115,7 @@ func removeKnownExtension(s string) string {
 	return s
 }
 
+// Returns files in a directory passed through a filter.
 func filterList(directory string, filter func(os.FileInfo) bool) fileList {
 	var list fileList
 
@@ -113,6 +143,7 @@ func filterList(directory string, filter func(os.FileInfo) bool) fileList {
 	return list
 }
 
+// A filter for filterList. Returns all except for those that begin with "." or "_".
 func dummyFilter(f os.FileInfo) bool {
 	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
 		return true
@@ -120,6 +151,7 @@ func dummyFilter(f os.FileInfo) bool {
 	return false
 }
 
+// A filter for filterList. Returns all directories except those that begin with "." or "_".
 func directoryFilter(f os.FileInfo) bool {
 	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
 		return f.IsDir()
@@ -127,6 +159,7 @@ func directoryFilter(f os.FileInfo) bool {
 	return false
 }
 
+// A filter for filterList. Returns all files except for those that begin with "." or "_".
 func fileFilter(f os.FileInfo) bool {
 	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
 		return (f.IsDir() == false)
@@ -134,6 +167,7 @@ func fileFilter(f os.FileInfo) bool {
 	return false
 }
 
+// Returns a stylized human title, given a file name.
 func createTitle(s string) string {
 	s = removeKnownExtension(s)
 
@@ -143,6 +177,7 @@ func createTitle(s string) string {
 	return strings.Title(s[:1]) + s[1:]
 }
 
+// Returns a link.
 func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{} {
 	item := map[string]interface{}{}
 
@@ -157,6 +192,27 @@ func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{
 	return item
 }
 
+func (p *Page) CreateMenu() {
+	var item map[string]interface{}
+	p.Menu = []map[string]interface{}{}
+
+	files := filterList(p.FileDir, directoryFilter)
+
+	for _, file := range files {
+		item = p.CreateLink(file, p.BasePath)
+		children := filterList(p.FileDir+PS+file.Name(), directoryFilter)
+		if len(children) > 0 {
+			item["children"] = []map[string]interface{}{}
+			for _, child := range children {
+				childItem := p.CreateLink(child, p.BasePath+file.Name()+"/")
+				item["children"] = append(item["children"].([]map[string]interface{}), childItem)
+			}
+		}
+		p.Menu = append(p.Menu, item)
+	}
+}
+
+// Populates Page.BreadCrumb with links.
 func (p *Page) CreateBreadCrumb() {
 
 	p.BreadCrumb = []map[string]interface{}{
@@ -183,26 +239,7 @@ func (p *Page) CreateBreadCrumb() {
 
 }
 
-func (p *Page) CreateMenu() {
-	var item map[string]interface{}
-	p.MenuContents = []map[string]interface{}{}
-
-	files := filterList(p.FileDir, directoryFilter)
-
-	for _, file := range files {
-		item = p.CreateLink(file, p.BasePath)
-		children := filterList(p.FileDir+PS+file.Name(), directoryFilter)
-		if len(children) > 0 {
-			item["Children"] = []map[string]interface{}{}
-			for _, child := range children {
-				childItem := p.CreateLink(child, p.BasePath+file.Name()+"/")
-				item["Children"] = append(item["Children"].([]map[string]interface{}), childItem)
-			}
-		}
-		p.MenuContents = append(p.MenuContents, item)
-	}
-}
-
+// Populates Page.SideMenu with files on the current document's directory.
 func (p *Page) CreateSideMenu() {
 	var item map[string]interface{}
 	p.SideMenu = []map[string]interface{}{}

@@ -1,7 +1,7 @@
 default_target: all
 
 VERSION=$(shell grep "var version" luminos.go | sed s/'"'//g | sed s/.*=//g | tr -d ' ')
-PKG_NAME=luminosd-$(VERSION)-$(shell uname -s)-$(shell uname -m)
+PKG_NAME=luminosd-$(VERSION)-$(shell uname -s | tr '[A-Z]' '[a-z]')-$(shell uname -m | tr '[A-Z]' '[a-z]')
 
 all:
 	rm -rf dist/
