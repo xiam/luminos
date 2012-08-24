@@ -14,4 +14,4 @@ Here are some of Luminos' features:
 [1]: http://werc.cat-v.org
 [2]: http://golang.org
 [3]: http://daringfireball.net/projects/markdown/
-[4]: /source-code
+[4]: http://github.com/xiam/luminos
