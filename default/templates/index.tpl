@@ -29,9 +29,6 @@
     <link rel="stylesheet" href="http://static.hckr.org/bootstrap/css/bootstrap.css" />
     <link rel="stylesheet" href="http://static.hckr.org/bootstrap/css/bootstrap-responsive.css" />
 
-    <link rel="stylesheet" href="http://static.hckr.org/google-code-prettify/prettify.css" />
-    <script type="text/javascript" src="http://static.hckr.org/google-code-prettify/prettify.js"></script>
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <script type="text/javascript">
@@ -61,11 +58,6 @@
   </head>
 
   <body>
-
-
-    <script type="text/javascript">
-      $(document).ready(prettyPrint);
-    </script>
 
     <div class="container" id="container">
     <div class="navbar navbar-fixed-top">
