@@ -36,7 +36,7 @@ import (
 	"strings"
 )
 
-var version = "0.9991"
+var version = "0.1"
 
 type Server struct {
 }
