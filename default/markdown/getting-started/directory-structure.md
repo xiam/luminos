@@ -7,18 +7,20 @@ file that rules the current host.
 
 A [YAML](http://www.yaml.org/) formatted file. This is an example.
 
-    page:
-      brand: "Luminos"
-      head:
-        title: "Luminos, markdown server"
-      body:
-        title: "Luminos project"
-        menu:
-          - { text: "Getting started", url: "/getting-started" }
-          - { text: "Templates", url: "/templates" }
-          - { text: "Source code", url: "https://github.com/xiam/luminos" }
-        menu_pull:
-          - { text: "Home", url: "/" }
+```yaml
+page:
+  brand: "Luminos"
+  head:
+    title: "Luminos, markdown server"
+  body:
+    title: "Luminos project"
+    menu:
+      - { text: "Getting started", url: "/getting-started" }
+      - { text: "Templates", url: "/templates" }
+      - { text: "Source code", url: "https://github.com/xiam/luminos" }
+    menu_pull:
+      - { text: "Home", url: "/" }
+```
 
 Be aware to use two-space tabs instead of the tab character.
 

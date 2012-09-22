@@ -27,7 +27,7 @@ import (
 	"errors"
 	"fmt"
 	md "github.com/russross/blackfriday"
-	"github.com/xiam/gosexy/yaml"
+	"github.com/gosexy/yaml"
 	"github.com/xiam/luminos/page"
 	"html/template"
 	"log"

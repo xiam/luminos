@@ -26,7 +26,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/xiam/gosexy/yaml"
+	"github.com/gosexy/yaml"
 	"github.com/xiam/luminos/host"
 	"log"
 	"net"
