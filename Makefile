@@ -1,23 +1,16 @@
 default_target: all
 
 VERSION=$(shell grep "var version" luminos.go | sed s/'"'//g | sed s/.*=//g | tr -d ' ')
-PKG_NAME=luminosd-$(VERSION)-$(shell uname -s | tr '[A-Z]' '[a-z]')-$(shell uname -m | tr '[A-Z]' '[a-z]')
-
-all:
-	rm -rf dist/
-	mkdir -p dist/
-	cp -rf settings.yaml default dist/
-	go build luminos.go
-	mv luminos dist/luminosd
+PKG_NAME=luminos-$(VERSION)-$(shell uname -s | tr '[A-Z]' '[a-z]')-$(shell uname -m | tr '[A-Z]' '[a-z]')
 
 install:
-	mkdir -p /usr/local/luminosd
+	sudo install
 
 package:
 	rm -rf $(PKG_NAME)
 	mkdir -p $(PKG_NAME)
-	cp -rf settings.yaml default $(PKG_NAME)/
 	go build luminos.go
-	mv luminos $(PKG_NAME)/luminosd
+	mv luminos $(PKG_NAME)/luminos
+	cp LICENSE $(PKG_NAME)/
 	tar cvzf $(PKG_NAME).tar.gz $(PKG_NAME)
 	rm -rf $(PKG_NAME)
