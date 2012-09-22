@@ -13,11 +13,14 @@ What's next? Please read the [getting started](/getting-started) page.
 
 # Didn't work? compile from source
 
-Make sure you have a working [Go](http://golang.org) installation before you cast these spells.
+Make sure you have a working [Go](http://golang.org) development environment before installing from source.
 
-    go get -u github.com/xiam/luminos
-    chdir $GOPATH/src/github.com/xiam/luminos
-    gmake
-    cd dist/
-    ./luminosd
+```prettyprint
+% go get -u github.com/xiam/luminos
+% go install github.com/xiam/luminos
+% cd ~/projects
+% git clone https://github.com/xiam/luminos-doc.git
+% cd ~/luminos-doc
+% luminos
+```
 

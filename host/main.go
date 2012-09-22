@@ -378,7 +378,8 @@ func (host *Host) loadSettings() bool {
 		host.Settings = yaml.Open(file)
 		return true
 	} else {
-		log.Printf("%s: seems like %s does not exists.\n", host.Name, file)
+		log.Printf("%s: %s\n", host.Name, err.Error())
+		log.Printf("Download a sample from https://raw.github.com/xiam/luminos/master/default/luminos.yaml\n")
 	}
 	return false
 }
@@ -412,6 +413,8 @@ func New(req *http.Request, docroot string) (*Host, error) {
 			return nil, errors.New(fmt.Sprintf("Could not start host: %s", host.Name))
 		}
 	} else {
+		log.Printf("Error reading directory %s: %s\n", docroot, err.Error())
+		log.Printf("Checkout an example directory at https://github.com/xiam/luminos/tree/master/default\n")
 		return nil, err
 	}
 

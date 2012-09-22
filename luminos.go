@@ -36,21 +36,28 @@ import (
 	"strings"
 )
 
-var version = "0.1"
+var version = "0.3"
 
 type Server struct {
 }
 
 // Command line flags.
-var flagHelp = flag.Bool("help", false, "Shows command line hints.")
-var flagSettings = flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
-var flagVersion = flag.Bool("version", false, "Shows software version.")
+var flagHelp			= flag.Bool("help", false, "Shows command line hints.")
+var flagSettings	= flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
+var flagVersion		= flag.Bool("version", false, "Shows software version.")
 
 // Global settings.
 var settings *yaml.Yaml
 
 // Host map.
 var hosts map[string]*host.Host
+
+func help() {
+	fmt.Printf("Usage: %s\n", os.Args[0])
+	fmt.Println("")
+	flag.PrintDefaults()
+	fmt.Println("")
+}
 
 // Dispatches a request and returns the appropriate host.
 func route(req *http.Request) *host.Host {
@@ -79,7 +86,7 @@ func route(req *http.Request) *host.Host {
 				hosts[name], err = host.New(req, docroot)
 				if err != nil {
 					delete(hosts, name)
-					log.Printf("Error loading default host.")
+					log.Printf("Could not find default host.")
 					return nil
 				}
 			}
@@ -109,16 +116,32 @@ func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // Starts up Luminos.
 func main() {
+
+	fmt.Println("Luminos Markdown Server http://luminos.menteslibres.org")
+	fmt.Println("Copyright (c) 2012 José Carlos Nieto")
+	fmt.Println("")
+
 	flag.Parse()
 
 	if *flagHelp == true {
-		fmt.Printf("Showing %v usage.\n", os.Args[0])
-		flag.PrintDefaults()
+		help()
 		return
 	}
 
 	if *flagVersion == true {
 		fmt.Printf("%v version: %s\n", os.Args[0], version)
+		return
+	}
+
+	// Settings file exists?
+
+	_, err := os.Stat(*flagSettings)
+
+	if err != nil {
+		log.Printf("Missing settings file: %s\n", *flagSettings)
+		log.Printf("Download a sample from https://raw.github.com/xiam/luminos/master/settings.yaml\n")
+		fmt.Println("")
+		help()
 		return
 	}
 
