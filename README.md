@@ -1,25 +1,52 @@
 # Luminos, markdown server
 
-Luminos is a server than transforms [markdown][3] code into HTML code right away, it was highly inspired by [werc][1] but build with less options in mind.
+Luminos is a server than transform [markdown][3] documents into HTML, it was highly inspired by [werc][1] but build with less options in mind.
 
 Here are some of Luminos' features:
 
-* It's the perfect tool for publishing documentation.
 * Does not require a database.
 * Can serve both HTML or markdown files.
 * Capable of serving multiple virtual hosts within the same process.
 * Works out of the box on Linux, FreeBSD, OSX <s>and Windows</s> with or without an external web server.
 * Written in [Go][2] and released as an Open Source [project][4].
 
-## Building Luminos from source
+## Using a precompiled binary
 
-Before building from source, please take a look at the Luminos [project page][5].
+There are some Luminos precompiled binaries for Linux, FreeBSD and OSX that work without having [Go][2] installed.
 
-    go get -u github.com/xiam/luminos
-    chdir $GOPATH/src/github.com/xiam/luminos
-    gmake
-    cd dist/
-    ./luminosd
+Check out the [downloads page](https://github.com/xiam/luminos/downloads) for the file that match your OS.
+
+Once you've downloaded the package, open a terminal to uncompress and install it:
+
+    % cd ~/Downloads
+    % tar xvzf luminos-0.3-darwin-x86_64.tar.gz
+    % cd luminos-0.3-darwin-x86_64
+    % source install.sh
+
+Then clone the example site from github and start Luminos:
+
+    % mkdir -p ~/projects
+    % cd ~/projects
+    % git clone https://github.com/xiam/luminos.menteslibres.org.git
+    % cd luminos.menteslibres.org
+    % luminos
+
+## Building Luminos
+
+If you want to build from source, a [Go][2] development environment is required.
+
+This will install Luminos to your ``$GOPATH/bin``
+
+    % go get github.com/xiam/luminos
+    % go install github.com/xiam/luminos
+
+Then clone the example site from github and start Luminos:
+
+    % mkdir -p ~/projects
+    % cd ~/projects
+    % git clone https://github.com/xiam/luminos.menteslibres.org.git
+    % cd luminos.menteslibres.org
+    % luminos
 
 ## License
 
