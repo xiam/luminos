@@ -26,8 +26,9 @@ package host
 import (
 	"errors"
 	"fmt"
-	md "github.com/russross/blackfriday"
+	"github.com/gosexy/to"
 	"github.com/gosexy/yaml"
+	md "github.com/russross/blackfriday"
 	"github.com/xiam/luminos/page"
 	"html/template"
 	"log"
@@ -85,12 +86,12 @@ func (host *Host) isExternalLink(url string) bool {
 
 // Function for funcMap that returns a setting value.
 func (host *Host) setting(path string) interface{} {
-	return host.Settings.Get(path, nil)
+	return host.Settings.Get(path)
 }
 
 // Function for funcMap that returns an array of settings.
 func (host *Host) settings(path string) []interface{} {
-	val := host.Settings.Get(path, nil).([]interface{})
+	val := host.Settings.Get(path).([]interface{})
 	return val
 }
 
@@ -190,7 +191,13 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	reqpath := strings.Trim(req.URL.Path, "/")
 
 	// Trying to match a file on webroot/
-	webroot := host.DocumentRoot + PS + host.Settings.Get("document.webroot", "webroot").(string)
+	var webroot string
+
+	if host.Settings.Get("document.webroot") == nil {
+		webroot = host.DocumentRoot + PS + "webroot"
+	} else {
+		webroot = host.DocumentRoot + PS + to.String(host.Settings.Get("document.webroot"))
+	}
 
 	localFile = webroot + PS + reqpath
 
@@ -206,7 +213,13 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	docroot := host.DocumentRoot + PS + strings.TrimRight(host.Settings.Get("document.markdown", "markdown").(string), PS)
+	var docroot string
+
+	if host.Settings.Get("document.markdown") == nil {
+		docroot = host.DocumentRoot + PS + "markdown"
+	} else {
+		docroot = host.DocumentRoot + PS + to.String(host.Settings.Get("document.markdown"))
+	}
 
 	testFile := docroot + PS + reqpath
 
@@ -304,7 +317,13 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // Loads templates with .tpl extension from the templates directory. At this moment only index.tpl is expected.
 func (host *Host) loadTemplates() bool {
-	dir := host.DocumentRoot + PS + host.Settings.Get("document.templates", "templates").(string)
+	var dir string
+
+	if host.Settings.Get("document.templates") == nil {
+		dir = host.DocumentRoot + PS + "templates"
+	} else {
+		dir = host.DocumentRoot + PS + to.String(host.Settings.Get("document.templates"))
+	}
 
 	fp, err := os.Open(dir)
 
@@ -375,7 +394,10 @@ func (host *Host) loadSettings() bool {
 	file := host.DocumentRoot + PS + "luminos.yaml"
 	_, err := os.Stat(file)
 	if err == nil {
-		host.Settings = yaml.Open(file)
+		host.Settings, err = yaml.Open(file)
+		if err != nil {
+			log.Fatalf("Could not open settings file: %s", err.Error())
+		}
 		return true
 	} else {
 		log.Printf("%s: %s\n", host.Name, err.Error())

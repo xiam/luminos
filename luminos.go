@@ -26,6 +26,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gosexy/to"
 	"github.com/gosexy/yaml"
 	"github.com/xiam/luminos/host"
 	"log"
@@ -42,9 +43,9 @@ type Server struct {
 }
 
 // Command line flags.
-var flagHelp			= flag.Bool("help", false, "Shows command line hints.")
-var flagSettings	= flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
-var flagVersion		= flag.Bool("version", false, "Shows software version.")
+var flagHelp = flag.Bool("help", false, "Shows command line hints.")
+var flagSettings = flag.String("conf", "./settings.yaml", "Path to the settings.yaml file.")
+var flagVersion = flag.Bool("version", false, "Shows software version.")
 
 // Global settings.
 var settings *yaml.Yaml
@@ -73,11 +74,11 @@ func route(req *http.Request) *host.Host {
 		var err error
 		var docroot string
 
-		docroot = settings.GetString(fmt.Sprintf("hosts/%s", name))
+		docroot = to.String(settings.Get(fmt.Sprintf("hosts/%s", name)))
 
 		if docroot == "" {
 			// Trying to serve default host.
-			docroot = settings.GetString("hosts/default")
+			docroot = to.String(settings.Get("hosts/default"))
 			if docroot == "" {
 				// Default host is not defined.
 				return nil
@@ -147,16 +148,20 @@ func main() {
 
 	hosts = make(map[string]*host.Host)
 
-	settings = yaml.Open(*flagSettings)
+	settings, err = yaml.Open(*flagSettings)
 
-	serverType := settings.GetString("server/type")
+	if err != nil {
+		log.Fatalf("Failed to open settings file: %s", err.Error())
+	}
+
+	serverType := to.String(settings.Get("server/type"))
 
 	domain := "unix"
-	address := settings.GetString("server/socket")
+	address := to.String(settings.Get("server/socket"))
 
 	if address == "" {
 		domain = "tcp"
-		address = fmt.Sprintf("%s:%d", settings.GetString("server/bind"), settings.GetInt("server/port"))
+		address = fmt.Sprintf("%s:%d", to.String(settings.Get("server/bind")), to.Int(settings.Get("server/port")))
 	}
 
 	listener, err := net.Listen(domain, address)
