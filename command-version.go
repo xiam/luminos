@@ -28,23 +28,20 @@ import (
 	"github.com/gosexy/cli"
 )
 
-func main() {
-	var err error
+const Version = "0.3"
 
-	// Software properties.
-	cli.Name = "Luminos Markdown Server"
-	cli.Homepage = "http://luminos.menteslibres.org"
-	cli.Author = "José Carlos Nieto"
-	cli.AuthorEmail = "xiam@menteslibres.org"
+func init() {
+	cli.Register("version", cli.Entry{
+		Name:        "version",
+		Description: "Prints software version.",
+		Command:     &versionCommand{},
+	})
+}
 
-	// Shows banner
-	cli.Banner()
+type versionCommand struct {
+}
 
-	// Dispatches the command.
-	err = cli.Dispatch()
-
-	if err != nil {
-		fmt.Printf("Error: %s\n", err.Error())
-	}
-
+func (self *versionCommand) Execute() error {
+	fmt.Printf("Version: %s\n", Version)
+	return nil
 }

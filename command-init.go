@@ -24,27 +24,50 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/gosexy/cli"
+	"os"
 )
 
-func main() {
+func init() {
+	cli.Register("init", cli.Entry{
+		Description: "Initializes a working directory with a Luminos base project.",
+		Usage:       "init [directory]",
+		Command:     &initCommand{},
+	})
+}
+
+type initCommand struct {
+}
+
+func (self *initCommand) Execute() error {
+
 	var err error
 
-	// Software properties.
-	cli.Name = "Luminos Markdown Server"
-	cli.Homepage = "http://luminos.menteslibres.org"
-	cli.Author = "José Carlos Nieto"
-	cli.AuthorEmail = "xiam@menteslibres.org"
+	// Default destinarion is current working directory
+	dest := "."
 
-	// Shows banner
-	cli.Banner()
-
-	// Dispatches the command.
-	err = cli.Dispatch()
-
-	if err != nil {
-		fmt.Printf("Error: %s\n", err.Error())
+	if flag.NArg() > 1 {
+		dest = flag.Arg(1)
 	}
 
+	stat, _ := os.Stat(dest)
+
+	if stat == nil {
+		// Directory does not exists, attemping to create it.
+		err = os.MkdirAll(dest, os.ModeDir|0755)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Path exists, is it a directory?
+		if stat.IsDir() == false {
+			return fmt.Errorf("Cannot create directory, file %s already exists.", dest)
+		}
+	}
+
+	fmt.Printf("Created empty luminos project in %s.\n", dest)
+
+	return nil
 }
