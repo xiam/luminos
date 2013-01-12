@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2012 José Carlos Nieto, http://xiam.menteslibres.org/
+  Copyright (c) 2012-2013 José Carlos Nieto, http://xiam.menteslibres.org/
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -27,6 +27,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gosexy/to"
+	"github.com/gosexy/cli"
 	"github.com/gosexy/yaml"
 	"github.com/xiam/luminos/host"
 	"log"
@@ -38,6 +39,10 @@ import (
 )
 
 var version = "0.3"
+
+type command struct {
+	Help error
+}
 
 type Server struct {
 }
@@ -117,12 +122,20 @@ func (server Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // Starts up Luminos.
 func main() {
+	var err error
 
 	fmt.Println("Luminos Markdown Server http://luminos.menteslibres.org")
 	fmt.Println("Copyright (c) 2012 José Carlos Nieto")
 	fmt.Println("")
 
 	flag.Parse()
+
+	err = cli.Dispatch()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
 	if *flagHelp == true {
 		help()
@@ -136,7 +149,7 @@ func main() {
 
 	// Settings file exists?
 
-	_, err := os.Stat(*flagSettings)
+	_, err = os.Stat(*flagSettings)
 
 	if err != nil {
 		log.Printf("Missing settings file: %s\n", *flagSettings)
