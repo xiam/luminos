@@ -1,0 +1,31 @@
+# Configuration file for Luminos.     http://luminos.menteslibres.org
+#
+# You are viewing a YAML formatted file, read more about the format
+# at http://www.yaml.org.
+#
+# Note: Use two space indentations instead of the \t character.
+#
+#
+
+page:
+  # Name of the site.
+  brand: "Luminos"
+
+  # Some properties for <head>.
+  head:
+    # Title that appears on the <title> tag.
+    title: "Hey, hello!"
+
+  # Some properties for <body>.
+  body:
+    # Title that appears on the <h1> tag.
+    title: "A new Luminos project"
+
+    # Top navigation bar.
+    menu:
+      - { text: "Documentation", url: "http://luminos.menteslibres.org/getting-started" }
+      - { text: "Source code", url: "https://github.com/xiam/luminos" }
+
+    # Top-right navigation helper.
+    menu_pull:
+      - { text: "Home", url: "/" }

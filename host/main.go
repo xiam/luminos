@@ -391,7 +391,7 @@ func (host *Host) loadTemplates() bool {
 
 // Loads settings into Host.Settings
 func (host *Host) loadSettings() bool {
-	file := host.DocumentRoot + PS + "luminos.yaml"
+	file := host.DocumentRoot + PS + "site.yaml"
 	_, err := os.Stat(file)
 	if err == nil {
 		host.Settings, err = yaml.Open(file)
@@ -401,7 +401,7 @@ func (host *Host) loadSettings() bool {
 		return true
 	} else {
 		log.Printf("%s: %s\n", host.Name, err.Error())
-		log.Printf("Download a sample from https://raw.github.com/xiam/luminos/master/default/luminos.yaml\n")
+		log.Printf("See http://luminos.menteslibres.org/getting-started/directory-structure")
 	}
 	return false
 }

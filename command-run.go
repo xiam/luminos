@@ -54,6 +54,8 @@ func init() {
 		Arguments:   []string{"c"},
 		Command:     &runCommand{},
 	})
+
+	hosts = make(map[string]*host.Host)
 }
 
 type server struct {

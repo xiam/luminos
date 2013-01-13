@@ -1,0 +1,54 @@
+body {
+  font-size: 1.15em;
+  font-family: "PT Serif","Georgia","Helvetica Neue",Arial,sans-serif;
+  background-color: #ddd;
+}
+#container {
+  background-color: #fff;
+  margin-top: 0px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-radius: 10px;
+}
+.container-fluid {
+  line-height: 1.5em;
+}
+.container-fluid p {
+  margin-bottom: 1.5em;
+}
+.container-fluid ul li {
+  line-height: 1.5em;
+}
+.hero-unit {
+  background: #eee;
+  background-position: center;
+}
+.hero-unit img {
+  float: right;
+}
+.navbar, footer, button, .hero-unit, .menu {
+  font-family: 'PT Sans';
+}
+code, pre {
+  font-family: "Source Code Pro", "Inconsolata", monospace;
+  font-size: 12pt;
+}
+blockquote {
+  color: #888;
+  font-size: 9pt;
+}
+blockquote p {
+  margin-bottom: 1.1em;
+}
+footer {
+  font-size: small;
+  padding-left: 30px;
+  padding-right: 30px;
+  color: #888;
+}
+.navbar .brand {
+  margin-left: 0px;
+}
+body {
+  padding-top: 50px;
+}

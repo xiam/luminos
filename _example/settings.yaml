@@ -1,0 +1,36 @@
+# Configuration file for Luminos.     http://luminos.menteslibres.org
+#
+# You are viewing a YAML formatted file, read more about the format
+# at http://www.yaml.org.
+#
+# Note: Use two space indentations instead of the \t character.
+#
+
+# SERVER CONFIGURATION
+server:
+
+  # The IPv4 or IPv6 address to bind to.
+  bind: "127.0.0.1"
+
+  # Port to use.
+  port: 9000
+
+  # Use "fastcgi" to start a FastCGI server or "standalone" to start
+  # a HTTP server instead.
+  type: "standalone"
+
+# VIRTUAL HOSTS CONFIGURATION
+hosts:
+
+  # Default host: if a client makes a request for an unknown hosts or
+  # without any host (by typing the ip directly).
+  default: "./sites/default"
+
+  # Uncomment the following line to route client requests for
+  # "foo.example.org" to the "/path/to/foo.example.org/docs" directory.
+  # foo.example.org: "/path/to/foo.example.org/docs"
+
+  # Uncomment the following line to route client requests for
+  # "bar.example.org" to the "/path/to/bar.example.org/docs" directory.
+  # bar.example.org: "/path/to/bar.example.org/docs"
+

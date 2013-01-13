@@ -67,7 +67,26 @@ func (self *initCommand) Execute() error {
 		}
 	}
 
-	fmt.Printf("Created empty luminos project in %s.\n", dest)
+	lockFile := dest + PS + ".luminos"
+
+	stat, _ = os.Stat(lockFile)
+
+	if stat == nil {
+
+		err = exampleFile(dest)
+
+		if err != nil {
+			return err
+		}
+
+		lfp, _ := os.Open(lockFile)
+		lfp.Close()
+
+		fmt.Printf("Created an empty luminos project in %s.\n", dest)
+
+	} else {
+		return fmt.Errorf("A luminos project already exists in %s.\n", dest)
+	}
 
 	return nil
 }
