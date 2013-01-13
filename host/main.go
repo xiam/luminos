@@ -1,5 +1,5 @@
 /*
-  Copyright (c) 2012 José Carlos Nieto, http://xiam.menteslibres.org/
+  Copyright (c) 2012-2013 José Carlos Nieto, http://xiam.menteslibres.org/
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -177,15 +177,23 @@ func (host *Host) readFile(file string) ([]byte, error) {
 	return nil, nil
 }
 
+func chunk(value string) string {
+	if value == "" {
+		return "-"
+	}
+	return value
+}
+
 // A simple ServeHTTP.
 func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var localFile string
 
+	status := http.StatusNotFound
+	size := -1
+
 	// Updating settings and template files that have changed.
 	host.Update()
-
-	log.Printf("%s: Routing request %s %s", req.Host, req.Method, req.URL.Path)
 
 	// Requested path
 	reqpath := strings.Trim(req.URL.Path, "/")
@@ -207,112 +215,129 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// File exists
 		if stat.IsDir() == false {
 			// Exists and it's not a directory, let's serve it.
-			log.Printf("%s: Serving file %s.", host.Name, localFile)
+			status = http.StatusOK
 			http.ServeFile(w, req, localFile)
-			return
+			size = int(stat.Size())
 		}
 	}
 
-	var docroot string
+	if status == http.StatusNotFound {
 
-	if host.Settings.Get("document.markdown") == nil {
-		docroot = host.DocumentRoot + PS + "markdown"
-	} else {
-		docroot = host.DocumentRoot + PS + to.String(host.Settings.Get("document.markdown"))
-	}
+		var docroot string
 
-	testFile := docroot + PS + reqpath
-
-	stat, err = os.Stat(testFile)
-
-	localFile, stat = guessFile(testFile, true)
-
-	if stat != nil {
-
-		if reqpath != "" {
-			if stat.IsDir() == false {
-				if strings.HasSuffix(req.URL.Path, "/") == true {
-					http.Redirect(w, req, "/"+reqpath, 301)
-				}
-			} else {
-				if strings.HasSuffix(req.URL.Path, "/") == false {
-					http.Redirect(w, req, req.URL.Path+"/", 301)
-				}
-			}
-		}
-
-		p := &page.Page{}
-
-		p.FilePath = localFile
-		p.BasePath = req.URL.Path
-
-		relPath := localFile[len(docroot):]
-
-		if stat.IsDir() == false {
-			p.FileDir = path.Dir(localFile)
-			p.BasePath = path.Dir(relPath)
+		if host.Settings.Get("document.markdown") == nil {
+			docroot = host.DocumentRoot + PS + "markdown"
 		} else {
-			p.FileDir = localFile
-			p.BasePath = relPath
+			docroot = host.DocumentRoot + PS + to.String(host.Settings.Get("document.markdown"))
 		}
 
-		content, err := host.readFile(localFile)
+		testFile := docroot + PS + reqpath
 
-		if err == nil {
-			p.Content = template.HTML(content)
-		}
+		stat, err = os.Stat(testFile)
 
-		p.FileDir = strings.TrimRight(p.FileDir, PS) + PS
-		p.BasePath = strings.TrimRight(p.BasePath, PS) + PS
+		localFile, stat = guessFile(testFile, true)
 
-		// werc-like header and footer.
-		hfile, hstat := guessFile(p.FileDir+"_header", true)
+		if stat != nil {
 
-		if hstat != nil {
-			hcontent, herr := host.readFile(hfile)
-			if herr == nil {
-				p.ContentHeader = template.HTML(hcontent)
+			if reqpath != "" {
+				if stat.IsDir() == false {
+					if strings.HasSuffix(req.URL.Path, "/") == true {
+						http.Redirect(w, req, "/"+reqpath, 301)
+					}
+				} else {
+					if strings.HasSuffix(req.URL.Path, "/") == false {
+						http.Redirect(w, req, req.URL.Path+"/", 301)
+					}
+				}
 			}
-		}
 
-		if p.BasePath == "/" {
-			p.IsHome = true
-		}
+			p := &page.Page{}
 
-		// werc-like header and footer.
-		ffile, fstat := guessFile(p.FileDir+"_footer", true)
+			p.FilePath = localFile
+			p.BasePath = req.URL.Path
 
-		if fstat != nil {
-			fcontent, ferr := host.readFile(ffile)
-			if ferr == nil {
-				p.ContentFooter = template.HTML(fcontent)
+			relPath := localFile[len(docroot):]
+
+			if stat.IsDir() == false {
+				p.FileDir = path.Dir(localFile)
+				p.BasePath = path.Dir(relPath)
+			} else {
+				p.FileDir = localFile
+				p.BasePath = relPath
 			}
-		}
 
-		if p.Content != "" {
-			title, _ := regexp.Compile(`<h[\d]>(.+)</h`)
-			found := title.FindStringSubmatch(string(p.Content))
-			if len(found) > 0 {
-				p.Title = found[1]
+			content, err := host.readFile(localFile)
+
+			if err == nil {
+				p.Content = template.HTML(content)
 			}
+
+			p.FileDir = strings.TrimRight(p.FileDir, PS) + PS
+			p.BasePath = strings.TrimRight(p.BasePath, PS) + PS
+
+			// werc-like header and footer.
+			hfile, hstat := guessFile(p.FileDir+"_header", true)
+
+			if hstat != nil {
+				hcontent, herr := host.readFile(hfile)
+				if herr == nil {
+					p.ContentHeader = template.HTML(hcontent)
+				}
+			}
+
+			if p.BasePath == "/" {
+				p.IsHome = true
+			}
+
+			// werc-like header and footer.
+			ffile, fstat := guessFile(p.FileDir+"_footer", true)
+
+			if fstat != nil {
+				fcontent, ferr := host.readFile(ffile)
+				if ferr == nil {
+					p.ContentFooter = template.HTML(fcontent)
+				}
+			}
+
+			if p.Content != "" {
+				title, _ := regexp.Compile(`<h[\d]>(.+)</h`)
+				found := title.FindStringSubmatch(string(p.Content))
+				if len(found) > 0 {
+					p.Title = found[1]
+				}
+			}
+
+			p.CreateBreadCrumb()
+			p.CreateMenu()
+			p.CreateSideMenu()
+
+			err = host.Templates["index.tpl"].t.Execute(w, p)
+
+			if err == nil {
+				status = http.StatusOK
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				status = http.StatusInternalServerError
+			}
+
 		}
-
-		p.CreateBreadCrumb()
-		p.CreateMenu()
-		p.CreateSideMenu()
-
-		log.Printf("%s: Serving file %s.", host.Name, localFile)
-
-		if err := host.Templates["index.tpl"].t.Execute(w, p); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-
-		return
 	}
 
-	log.Printf("%s: Resource was not found.", host.Name)
+	if status == http.StatusNotFound {
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 
-	http.Error(w, "Not found", 404)
+	fmt.Println(strings.Join([]string{
+		chunk(req.RemoteAddr),
+		chunk(""),
+		chunk(""),
+		chunk("[" + time.Now().Format("02/Jan/2006:15:04:05 -0700") + "]"),
+		chunk("\"" + fmt.Sprintf("%s %s %s", req.Method, req.RequestURI, req.Proto) + "\""),
+		chunk(fmt.Sprintf("%d", status)),
+		chunk(fmt.Sprintf("%d", size)),
+	},
+		" "),
+	)
 }
 
 // Loads templates with .tpl extension from the templates directory. At this moment only index.tpl is expected.

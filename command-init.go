@@ -79,13 +79,21 @@ func (self *initCommand) Execute() error {
 			return err
 		}
 
-		lfp, _ := os.Open(lockFile)
+		lfp, _ := os.Create(lockFile)
 		lfp.Close()
 
-		fmt.Printf("Created an empty luminos project in %s.\n", dest)
+		if dest == "." {
+			fmt.Printf("Created an empty Luminos project in the current directory.\n")
+		} else {
+			fmt.Printf("Created an empty Luminos project in %s/.\n", dest)
+		}
 
 	} else {
-		return fmt.Errorf("A luminos project already exists in %s.\n", dest)
+		if dest == "." {
+			return fmt.Errorf("A Luminos project already exists in the current directory.\n")
+		} else {
+			return fmt.Errorf("A Luminos project already exists in %s/.\n", dest)
+		}
 	}
 
 	return nil
