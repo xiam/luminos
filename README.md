@@ -1,8 +1,8 @@
 # Luminos, markdown server
 
-Luminos is a command line tool that transforms and serves [markdown][3]
-documents as HTML, it was highly inspired by [werc][1] but build with less
-features in mind.
+[Luminos][5] is a command line tool that transforms and serves
+[markdown][3] documents as HTML, it was highly inspired by [werc][1] but
+built with less features in mind.
 
 ```
 $ luminos
@@ -30,7 +30,7 @@ Here are some of Luminos' features:
   without an external web server.
 * Written in [Go][2] and released as an Open Source [project][4].
 
-## Building Luminos
+## Getting Luminos
 
 If you want to build from source, a [Go][2] development environment is
 required.
@@ -52,6 +52,10 @@ $ luminos init luminos-example-project
 $ cd luminos-example-project
 $ luminos run
 ```
+
+## Documentation
+
+Check out the [project page][5] for documentation, tips and tricks.
 
 ## License
 
