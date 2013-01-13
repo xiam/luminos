@@ -34,7 +34,7 @@ import (
 
 const PS = string(os.PathSeparator)
 
-func exampleFile(root string) error {
+func unpackExampleProject(root string) error {
 
 	stat, err := os.Stat(root)
 

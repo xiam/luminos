@@ -73,7 +73,7 @@ func (self *initCommand) Execute() error {
 
 	if stat == nil {
 
-		err = exampleFile(dest)
+		err = unpackExampleProject(dest)
 
 		if err != nil {
 			return err
