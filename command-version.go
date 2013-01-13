@@ -28,7 +28,7 @@ import (
 	"github.com/gosexy/cli"
 )
 
-const Version = "0.3"
+const Version = "0.5"
 
 func init() {
 	cli.Register("version", cli.Entry{
