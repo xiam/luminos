@@ -24,8 +24,8 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gosexy/cli"
+	"log"
 )
 
 func main() {
@@ -34,9 +34,9 @@ func main() {
 	// Software properties.
 	cli.Name = "Luminos Markdown Server"
 	cli.Homepage = "http://luminos.menteslibres.org"
-	cli.Author = "José Carlos Nieto"
+	cli.Author = "Carlos Reventlov"
 	cli.Version = Version
-	cli.AuthorEmail = "xiam@menteslibres.org"
+	cli.AuthorEmail = "carlos@reventlov.com"
 
 	// Shows banner
 	cli.Banner()
@@ -45,7 +45,7 @@ func main() {
 	err = cli.Dispatch()
 
 	if err != nil {
-		fmt.Printf("Error: %s\n", err.Error())
+		log.Printf("Error: %s\n", err.Error())
 	}
 
 }

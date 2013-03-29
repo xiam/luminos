@@ -24,7 +24,6 @@
 package host
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gosexy/to"
 	"github.com/gosexy/yaml"
@@ -50,6 +49,8 @@ type Host struct {
 	Name string
 	// Main directory
 	DocumentRoot string
+	// Main path
+	Path string
 	// Settings
 	Settings *yaml.Yaml
 	// Templates (not fully functional yet)
@@ -60,6 +61,8 @@ type Host struct {
 	*http.Request
 	// Standard response writer.
 	http.ResponseWriter
+	// Function map
+	funcMap template.FuncMap
 }
 
 // A template
@@ -69,30 +72,55 @@ type Template struct {
 	mtime time.Time
 }
 
-var extensions = []string{".md", ".html", ".txt"}
+var extensions = []string{
+	".md",
+	".html",
+	".txt",
+}
 
-// Function for funcMap that returns an absolute or relative URL.
-func (host *Host) url(url string) string {
-	if host.isExternalLink(url) == false {
-		return "/" + strings.TrimLeft(url, "/")
+// Returns a relative URL.
+func (self *Host) asset(url string) string {
+	if self.isExternalLink(url) == false {
+		return self.Path + "/" + strings.TrimLeft(url, "/")
 	}
 	return url
 }
 
-func (host *Host) isExternalLink(url string) bool {
+// Returns an absolute URL.
+func (self *Host) url(url string) string {
+	if self.isExternalLink(url) == false {
+		return self.Name + self.asset(url)
+	}
+	return url
+}
+
+func (self *Host) isExternalLink(url string) bool {
 	test, _ := regexp.Compile(`^[a-z0-9]+:\/\/`)
 	return test.MatchString(url)
 }
 
 // Function for funcMap that returns a setting value.
-func (host *Host) setting(path string) interface{} {
-	return host.Settings.Get(path)
+func (self *Host) setting(path string) interface{} {
+	route := strings.Split(path, "/")
+	args := make([]interface{}, len(route))
+	for i, _ := range route {
+		args[i] = route[i]
+	}
+	return self.Settings.Get(args...)
 }
 
 // Function for funcMap that returns an array of settings.
-func (host *Host) settings(path string) []interface{} {
-	val := host.Settings.Get(path).([]interface{})
-	return val
+func (self *Host) settings(path string) []interface{} {
+	route := strings.Split(path, "/")
+	args := make([]interface{}, len(route))
+	for i, _ := range route {
+		args[i] = route[i]
+	}
+	val := self.Settings.Get(args...)
+	if val == nil {
+		return nil
+	}
+	return val.([]interface{})
 }
 
 // Function for funcMap that writes text as Javascript.
@@ -189,6 +217,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var localFile string
 
+	// Default status.
 	status := http.StatusNotFound
 	size := -1
 
@@ -196,16 +225,25 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	host.Update()
 
 	// Requested path
-	reqpath := strings.Trim(req.URL.Path, "/")
+	reqpath := req.URL.Path
+
+	// Stripping path
+	index := len(host.Path)
+
+	if reqpath[0:index] == host.Path {
+		reqpath = reqpath[index:]
+	}
+
+	reqpath = strings.Trim(reqpath, "/")
 
 	// Trying to match a file on webroot/
-	var webroot string
+	webrootdir := to.String(host.Settings.Get("document", "webroot"))
 
-	if host.Settings.Get("document.webroot") == nil {
-		webroot = host.DocumentRoot + PS + "webroot"
-	} else {
-		webroot = host.DocumentRoot + PS + to.String(host.Settings.Get("document.webroot"))
+	if webrootdir == "" {
+		webrootdir = "webroot"
 	}
+
+	webroot := host.DocumentRoot + PS + webrootdir
 
 	localFile = webroot + PS + reqpath
 
@@ -223,13 +261,13 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if status == http.StatusNotFound {
 
-		var docroot string
+		docrootdir := to.String(host.Settings.Get("document", "markdown"))
 
-		if host.Settings.Get("document.markdown") == nil {
-			docroot = host.DocumentRoot + PS + "markdown"
-		} else {
-			docroot = host.DocumentRoot + PS + to.String(host.Settings.Get("document.markdown"))
+		if docrootdir == "" {
+			docrootdir = "markdown"
 		}
+
+		docroot := host.DocumentRoot + PS + docrootdir
 
 		testFile := docroot + PS + reqpath
 
@@ -340,21 +378,21 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	)
 }
 
-// Loads templates with .tpl extension from the templates directory. At this moment only index.tpl is expected.
-func (host *Host) loadTemplates() bool {
-	var dir string
+// Loads templates with .tpl extension from the templates directory. At this
+// moment only index.tpl is expected.
+func (host *Host) loadTemplates() error {
+	tpldir := to.String(host.Settings.Get("document", "templates"))
 
-	if host.Settings.Get("document.templates") == nil {
-		dir = host.DocumentRoot + PS + "templates"
-	} else {
-		dir = host.DocumentRoot + PS + to.String(host.Settings.Get("document.templates"))
+	if tpldir == "" {
+		tpldir = "templates"
 	}
 
-	fp, err := os.Open(dir)
+	tplroot := host.DocumentRoot + PS + tpldir
+
+	fp, err := os.Open(tplroot)
 
 	if err != nil {
-		log.Printf("%s: %s", host.Name, err)
-		return false
+		return fmt.Errorf("Error trying to open %s: %s", tplroot, err.Error())
 	}
 
 	defer fp.Close()
@@ -362,35 +400,27 @@ func (host *Host) loadTemplates() bool {
 	files, err := fp.Readdir(-1)
 
 	if err != nil {
-		log.Printf("%s: %s", host.Name, err)
-		return false
+		return fmt.Errorf("Error reading directory %s: %s", tplroot, err.Error())
 	}
 
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".tpl") == true {
 
-			tpl := dir + PS + file.Name()
+			tpl := tplroot + PS + file.Name()
 
 			if value, loaded := host.Templates[file.Name()]; loaded == true {
 				if value.mtime == file.ModTime() {
 					continue
 				} else {
-					log.Printf("%s: (Re)loading %s", host.Name, tpl)
+					log.Printf("%s: Reloading template %s...\n", host.Name, tpl)
 				}
 			} else {
-				log.Printf("%s: Loading %s", host.Name, tpl)
+				log.Printf("%s: Loading template %s...\n", host.Name, tpl)
 			}
 
 			parsed := template.New(file.Name())
 
-			parsed, err = parsed.Funcs(template.FuncMap{
-				"url":      func(s string) string { return host.url(s) },
-				"setting":  func(s string) interface{} { return host.setting(s) },
-				"settings": func(s string) []interface{} { return host.settings(s) },
-				"jstext":   jstext,
-				"htmltext": htmltext,
-				"link":     func(a, b string) template.HTML { return host.link(a, b) },
-			}).ParseFiles(tpl)
+			parsed, err = parsed.Funcs(host.funcMap).ParseFiles(tpl)
 
 			if err == nil {
 				host.Templates[file.Name()] = &Template{
@@ -399,68 +429,103 @@ func (host *Host) loadTemplates() bool {
 					mtime: file.ModTime(),
 				}
 			} else {
-				log.Printf("%s: Template error on file %s: %s", host.Name, tpl, err.Error())
+				log.Printf("%s: Template error on file %s: %s\n", host.Name, tpl, err.Error())
 			}
 
 		}
 	}
 
 	if _, ok := host.Templates["index.tpl"]; ok == false {
-		log.Printf("%s: template %s could not be found.", host.Name, dir+PS+"index.tpl")
-		return false
+		return fmt.Errorf("Template %s could not be found.", tplroot+PS+"index.tpl")
 	}
 
-	return true
+	return nil
 
 }
 
 // Loads settings into Host.Settings
-func (host *Host) loadSettings() bool {
+func (host *Host) loadSettings() error {
+
 	file := host.DocumentRoot + PS + "site.yaml"
+
 	_, err := os.Stat(file)
+
 	if err == nil {
 		host.Settings, err = yaml.Open(file)
+		log.Printf("%s: Loading settings file %s...\n", host.Name, file)
 		if err != nil {
-			log.Fatalf("Could not open settings file: %s", err.Error())
+			return fmt.Errorf(`Could not parse settings file (%s): %s`, file, err.Error())
 		}
-		return true
 	} else {
-		log.Printf("%s: %s\n", host.Name, err.Error())
-		log.Printf("See http://luminos.menteslibres.org/getting-started/directory-structure")
+		return fmt.Errorf(`Error trying to open settings file (%s): %s.`, file, err.Error())
 	}
-	return false
+
+	return nil
 }
 
 // Reloads templates and settings.
-func (host *Host) Update() bool {
-	if host.loadSettings() == false {
-		return false
+func (host *Host) Update() error {
+	var err error
+
+	err = host.loadSettings()
+	if err != nil {
+		return err
 	}
-	if host.loadTemplates() == false {
-		return false
+
+	err = host.loadTemplates()
+	if err != nil {
+		return err
 	}
-	return true
+
+	return nil
 }
 
 // Creates and returns a host.
-func New(req *http.Request, docroot string) (*Host, error) {
-	host := &Host{}
-	host.Name = req.Host
+func New(name string, root string) (*Host, error) {
 
-	_, err := os.Stat(docroot)
+	_, err := os.Stat(root)
 
 	if err == nil {
-		host.DocumentRoot = docroot
 
-		host.Templates = make(map[string]*Template)
+		name = strings.Trim(name, "/")
 
-		if host.Update() == true {
-			return host, nil
-		} else {
-			return nil, errors.New(fmt.Sprintf("Could not start host: %s", host.Name))
+		path := "/"
+
+		index := strings.Index(name, "/")
+
+		if index > 0 {
+			path = name[index:]
+			name = name[0:index]
 		}
+
+		host := &Host{
+			Name:         name,
+			Path:         path,
+			DocumentRoot: root,
+			Templates:    make(map[string]*Template),
+		}
+
+		host.funcMap = template.FuncMap{
+			"url":      func(s string) string { return host.url(s) },
+			"asset":    func(s string) string { return host.asset(s) },
+			"setting":  func(s string) interface{} { return host.setting(s) },
+			"settings": func(s string) []interface{} { return host.settings(s) },
+			"jstext":   jstext,
+			"htmltext": htmltext,
+			"link":     func(a, b string) template.HTML { return host.link(a, b) },
+		}
+
+		err = host.Update()
+
+		if err != nil {
+			log.Printf("Could not start host: %s\n", name)
+			return nil, err
+		}
+
+		return host, nil
+
 	} else {
-		log.Printf("Error reading directory %s: %s\n", docroot, err.Error())
+		log.Printf("Error reading directory %s: %s\n", root, err.Error())
 		log.Printf("Checkout an example directory at https://github.com/xiam/luminos/tree/master/default\n")
 		return nil, err
 	}

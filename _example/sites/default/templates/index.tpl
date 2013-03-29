@@ -5,9 +5,9 @@
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 
-    <link href="http://fonts.googleapis.com/css?family=PT+Serif" rel="stylesheet" type="text/css">
-    <link href="http://fonts.googleapis.com/css?family=PT+Sans" rel="stylesheet" type="text/css">
-    <link href="http://fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=PT+Serif" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=PT+Sans" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
 
     {{ if .IsHome }}
         <title>{{ setting "page/head/title" }}</title>
@@ -20,9 +20,11 @@
       {{ end }}
     {{ end }}
 
+		<link rel="shortcut icon" href="{{ asset "favicon.ico" }}" />
+
     <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
     <!--[if lt IE 9]>
-    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
 
     <script type="text/javascript" src="http://get.jsfoo.org/jquery.js"></script>
@@ -36,11 +38,11 @@
     <link rel="stylesheet" href="http://static.hckr.org/highlightjs/styles/solarized_dark.css">
     <script src="http://static.hckr.org/highlightjs/highlight.pack.js"></script>
 
-    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="{{ asset "/css/styles.css" }}" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <script type="text/javascript" src="/js/main.js"></script>
+    <script type="text/javascript" src="{{ asset "/js/main.js" }}"></script>
 
   </head>
 
@@ -51,7 +53,7 @@
       <div class="navbar-inner">
         <div class="container">
 
-          <a class="brand" href="{{ url "/" }}">{{ setting "page/brand" }}</a>
+          <a class="brand" href="{{ asset "/" }}">{{ setting "page/brand" }}</a>
 
           <div class="nav-collapse">
             {{ if settings "page/body/menu" }}
@@ -73,7 +75,6 @@
         </div>
       </div>
     </div>
-
 
     {{ if .IsHome }}
 
@@ -108,7 +109,7 @@
       {{ if .BreadCrumb }}
         <ul class="breadcrumb menu">
           {{ range .BreadCrumb }}
-            <li><a href="{{ url .link }}">{{ .text }}</a> <span class="divider">/</span></li>
+            <li><a href="{{ asset .link }}">{{ .text }}</a> <span class="divider">/</span></li>
           {{ end }}
         </ul>
       {{ end }}
@@ -122,7 +123,7 @@
                   <ul class="nav nav-list menu">
                     {{ range .SideMenu }}
                       <li>
-                        <a href="{{ url .link }}">{{ .text }}</a>
+                        <a href="{{ asset .link }}">{{ .text }}</a>
                       </li>
                     {{ end }}
                   </ul>
@@ -142,7 +143,7 @@
                 <ul class="nav nav-list menu">
                   {{ range .SideMenu }}
                     <li>
-                      <a href="{{ url .link }}">{{ .text }}</a>
+                      <a href="{{ asset .link }}">{{ .text }}</a>
                     </li>
                   {{ end }}
                 </ul>

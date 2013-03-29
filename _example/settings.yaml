@@ -10,7 +10,7 @@
 server:
 
   # The IPv4 or IPv6 address to bind to.
-  bind: "127.0.0.1"
+  bind: "0.0.0.0"
 
   # Port to use.
   port: 9000
@@ -26,9 +26,14 @@ hosts:
   # without any host (by typing the ip directly).
   default: "./sites/default"
 
+
   # Uncomment the following line to route client requests for
   # "foo.example.org" to the "/path/to/foo.example.org/docs" directory.
   # foo.example.org: "/path/to/foo.example.org/docs"
+
+  # Uncomment the following line to route client requests for
+  # "foo.example.org/bar" to the "/path/to/foo.example.org/docs/foo" directory.
+  foo.example.org/docs: "./sites/default"
 
   # Uncomment the following line to route client requests for
   # "bar.example.org" to the "/path/to/bar.example.org/docs" directory.

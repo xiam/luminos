@@ -38,6 +38,11 @@ import (
 	"strings"
 )
 
+// Default values
+const DEFAULT_SETTINGS_FILE = "./settings.yaml"
+const DEFAULT_SERVER_DOMAIN = "unix"
+const DEFAULT_SERVER_PROTOCOL = "tcp"
+
 // Global settings.
 var settings *yaml.Yaml
 
@@ -48,6 +53,7 @@ var hosts map[string]*host.Host
 var flagConf = flag.String("c", "./settings.yaml", "Path to the settings.yaml file.")
 
 func init() {
+
 	cli.Register("run", cli.Entry{
 		Name:        "run",
 		Description: "Runs a luminos server.",
@@ -70,50 +76,43 @@ func route(req *http.Request) *host.Host {
 	name := req.Host
 
 	if strings.Contains(name, ":") {
-		name = name[0:strings.LastIndex(name, ":")]
+		name = name[0:strings.Index(name, ":")]
 	}
 
-	if _, ok := hosts[name]; ok == false {
+	path := name + req.URL.Path
 
-		var err error
-		var docroot string
+	// Searching for best match for host.
+	match := ""
 
-		docroot = to.String(settings.Get(fmt.Sprintf("hosts/%s", name)))
-
-		if docroot == "" {
-			// Trying to serve default host.
-			docroot = to.String(settings.Get("hosts/default"))
-			if docroot == "" {
-				// Default host is not defined.
-				return nil
-			} else {
-				// Serving default host.
-				hosts[name], err = host.New(req, docroot)
-				if err != nil {
-					delete(hosts, name)
-					log.Printf("Could not find default host.")
-					return nil
-				}
-			}
-		} else {
-			// Host is defined in settings.yaml
-			hosts[name], err = host.New(req, docroot)
-			if err != nil {
-				delete(hosts, name)
-				log.Printf("Requested host %s does not exists.", name)
-				return nil
+	for key, _ := range hosts {
+		lkey := len(key)
+		if lkey > len(match) {
+			if path[0:lkey] == key {
+				match = key
 			}
 		}
-
 	}
-	return hosts[name]
+
+	if match == "" {
+		log.Printf("Could not match any host: %s, falling back to default.\n", req.Host)
+		match = "default"
+	}
+
+	if _, ok := hosts[match]; ok == true {
+		return hosts[match]
+	}
+
+	log.Printf("Request for unknown host: %s\n", req.Host)
+
+	return nil
+
 }
 
 // Routes a request and lets the host handle it.
-func (self server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	h := route(req)
-	if h != nil {
-		h.ServeHTTP(w, req)
+func (self server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
+	r := route(req)
+	if r != nil {
+		r.ServeHTTP(wri, req)
 	} else {
 		log.Printf("Failed to serve host %s.\n", req.Host)
 	}
@@ -122,7 +121,7 @@ func (self server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (self *runCommand) Execute() error {
 
 	// Default settings file.
-	settingsFile := "./settings.yaml"
+	settingsFile := DEFAULT_SETTINGS_FILE
 
 	if *flagConf != "" {
 		// Overriding settings file.
@@ -138,7 +137,9 @@ func (self *runCommand) Execute() error {
 	if stat != nil {
 
 		if stat.IsDir() == true {
-			return fmt.Errorf("Could not open %s, it's a directory.", settingsFile)
+
+			return fmt.Errorf("Could not open %s: it's a directory!", settingsFile)
+
 		} else {
 
 			// Trying to read settings from file.
@@ -148,14 +149,14 @@ func (self *runCommand) Execute() error {
 				return fmt.Errorf("Error while reading settings file %s: %s", settingsFile, err.Error())
 			}
 
-			serverType := to.String(settings.Get("server/type"))
+			serverType := to.String(settings.Get("server", "type"))
 
-			domain := "unix"
-			address := to.String(settings.Get("server/socket"))
+			domain := DEFAULT_SERVER_DOMAIN
+			address := to.String(settings.Get("server", "socket"))
 
 			if address == "" {
-				domain = "tcp"
-				address = fmt.Sprintf("%s:%d", to.String(settings.Get("server/bind")), to.Int(settings.Get("server/port")))
+				domain = DEFAULT_SERVER_PROTOCOL
+				address = fmt.Sprintf("%s:%d", to.String(settings.Get("server", "bind")), to.Int(settings.Get("server", "port")))
 			}
 
 			listener, err := net.Listen(domain, address)
@@ -164,19 +165,44 @@ func (self *runCommand) Execute() error {
 				return err
 			}
 
+			// Loading and verifying host entries
+			entries := to.Map(settings.Get("hosts"))
+
+			for name, _ := range entries {
+				path := to.String(entries[name])
+
+				info, err := os.Stat(path)
+				if err != nil {
+					return fmt.Errorf("Failed to validate host %s: %s.", name, err.Error())
+				}
+				if info.IsDir() == false {
+					return fmt.Errorf("Host %s does not point to a directory.", name)
+				}
+				// Just allocating map key.
+				hosts[name], err = host.New(name, path)
+
+				if err != nil {
+					return fmt.Errorf("Failed to initialize host %s: %s.", name, err.Error())
+				}
+			}
+
+			if _, ok := entries["default"]; ok == false {
+				log.Printf("Warning: default host was not provided.")
+			}
+
 			defer listener.Close()
 
 			switch serverType {
 			case "fastcgi":
 				if err == nil {
-					log.Printf("FastCGI server listening at %s.", address)
+					log.Printf("Starting FastCGI server. Listening at %s.", address)
 					fcgi.Serve(listener, &server{})
 				} else {
 					return fmt.Errorf("Failed to start FastCGI server: %s", err.Error())
 				}
 			case "standalone":
 				if err == nil {
-					log.Printf("HTTP server listening at %s.", address)
+					log.Printf("Starting HTTP server. Listening at %s.", address)
 					http.Serve(listener, &server{})
 				} else {
 					return fmt.Errorf("Failed to start HTTP server: %s", err.Error())
@@ -187,7 +213,7 @@ func (self *runCommand) Execute() error {
 
 		}
 	} else {
-		return fmt.Errorf("Coult not load settings file: %s.", settingsFile)
+		return fmt.Errorf("Could not load settings file: %s.", settingsFile)
 	}
 
 	return nil
