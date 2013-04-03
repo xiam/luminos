@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
   <head>
@@ -20,29 +21,33 @@
       {{ end }}
     {{ end }}
 
-		<link rel="shortcut icon" href="{{ asset "favicon.ico" }}" />
+		<link rel="shortcut icon" href="{{ asset "/favicon.ico" }}" />
 
-    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
-    <!--[if lt IE 9]>
-    <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 
-    <script type="text/javascript" src="http://get.jsfoo.org/jquery.js"></script>
-    <script type="text/javascript" src="http://get.jsfoo.org/jquery.foo.js?v0.2"></script>
+    <link rel="stylesheet" href="//menteslibres.net/static/normalize/normalize.css" />
 
-    <link rel="stylesheet" href="http://static.hckr.org/normalize/normalize.css" />
+    <link rel="stylesheet" href="//menteslibres.net/static/bootstrap/css/bootstrap.css" />
+    <link rel="stylesheet" href="//menteslibres.net/static/bootstrap/css/bootstrap-responsive.css" />
 
-    <link rel="stylesheet" href="http://static.hckr.org/bootstrap/css/bootstrap.css" />
-    <link rel="stylesheet" href="http://static.hckr.org/bootstrap/css/bootstrap-responsive.css" />
-
-    <link rel="stylesheet" href="http://static.hckr.org/highlightjs/styles/solarized_dark.css">
-    <script src="http://static.hckr.org/highlightjs/highlight.pack.js"></script>
+    <link rel="stylesheet" href="//menteslibres.net/static/highlightjs/styles/solarized_dark.css">
+    <script src="//menteslibres.net/static/highlightjs/highlight.pack.js"></script>
 
     <link rel="stylesheet" href="{{ asset "/css/styles.css" }}" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <script type="text/javascript" src="{{ asset "/js/main.js" }}"></script>
+
+		<style type="text/css">
+			body {
+				font-family: 'PT Sans';
+				font-size: large;
+			}
+			code {
+				font-family: 'Source Code Pro';
+			}
+		</style>
 
   </head>
 
@@ -82,8 +87,9 @@
 
         <h1>Luminos</h1>
         <p>
-          A tiny server for markdown documents.
+					A tiny server for markdown documents
         </p>
+
         <p class="pull-right">
           <a href="http://luminos.menteslibres.org" target="_blank" class="btn btn-large btn-primary">
             Homepage
@@ -167,7 +173,7 @@
     <hr />
 
     <footer>
-      Powered by <a href="http://luminos.menteslibres.org" target="_blank">Luminos</a>
+      Powered by <a href="https://menteslibres.net/luminos" target="_blank">Luminos</a>
     </footer>
 
     {{ if setting "page/body/scripts/footer" }}

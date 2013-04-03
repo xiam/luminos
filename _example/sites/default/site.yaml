@@ -14,7 +14,7 @@ page:
   # Some properties for <head>.
   head:
     # Title that appears on the <title> tag.
-    title: "Hey, hello!"
+    title: "Oh, hello!"
 
   # Some properties for <body>.
   body:

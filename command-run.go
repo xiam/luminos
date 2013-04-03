@@ -24,11 +24,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/gosexy/cli"
 	"github.com/gosexy/to"
 	"github.com/gosexy/yaml"
+	"github.com/howeyc/fsnotify"
 	"github.com/xiam/luminos/host"
 	"log"
 	"net"
@@ -119,6 +121,58 @@ func (self server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Loads settings
+func loadSettings(file string) (*yaml.Yaml, error) {
+
+	var entries map[interface{}]interface{}
+	var ok bool
+
+	// Trying to read settings from file.
+	y, err := yaml.Open(file)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Loading and verifying host entries
+	if entries, ok = y.Get("hosts").(map[interface{}]interface{}); ok == false {
+		return nil, errors.New("Missing \"hosts\" entry.")
+	}
+
+	h := map[string]*host.Host{}
+
+	for key, _ := range entries {
+		name := to.String(key)
+		path := to.String(entries[name])
+
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to validate host %s: %s.", name, err.Error())
+		}
+		if info.IsDir() == false {
+			return nil, fmt.Errorf("Host %s does not point to a directory.", name)
+		}
+
+		h[name], err = host.New(name, path)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failed to initialize host %s: %s.", name, err.Error())
+		}
+	}
+
+	for name, _ := range hosts {
+		hosts[name].Close()
+	}
+
+	hosts = h
+
+	if _, ok := hosts["default"]; ok == false {
+		log.Printf("Warning: default host was not provided.")
+	}
+
+	return y, nil
+}
+
 func (self *runCommand) Execute() error {
 
 	// Default settings file.
@@ -135,6 +189,42 @@ func (self *runCommand) Execute() error {
 		return fmt.Errorf("Error while opening %s: %s", settingsFile, err.Error())
 	}
 
+	// Watching settings file for changes.
+	watcher, err := fsnotify.NewWatcher()
+
+	if err == nil {
+		defer watcher.Close()
+
+		go func() {
+			for {
+				select {
+				case ev := <-watcher.Event:
+					if ev == nil {
+						return
+					}
+					// fmt.Printf("ev: %v\n", ev)
+					if ev.IsModify() == true {
+						log.Printf("Trying to reload settings file %s...\n", ev.Name)
+						y, err := loadSettings(ev.Name)
+						if err != nil {
+							log.Printf("Error loading settings file %s: %s\n", ev.Name, err.Error())
+						} else {
+							settings = y
+						}
+					}
+					if ev.IsDelete() == true {
+						watcher.RemoveWatch(ev.Name)
+						watcher.Watch(ev.Name)
+					}
+				case err := <-watcher.Error:
+					log.Printf("Watcher error: %s\n", err.Error())
+				}
+			}
+		}()
+
+		watcher.Watch(settingsFile)
+	}
+
 	if stat != nil {
 
 		if stat.IsDir() == true {
@@ -143,8 +233,7 @@ func (self *runCommand) Execute() error {
 
 		} else {
 
-			// Trying to read settings from file.
-			settings, err = yaml.Open(settingsFile)
+			settings, err = loadSettings(settingsFile)
 
 			if err != nil {
 				return fmt.Errorf("Error while reading settings file %s: %s", settingsFile, err.Error())
@@ -157,38 +246,13 @@ func (self *runCommand) Execute() error {
 
 			if address == "" {
 				domain = DEFAULT_SERVER_PROTOCOL
-				address = fmt.Sprintf("%s:%d", to.String(settings.Get("server", "bind")), to.Int(settings.Get("server", "port")))
+				address = fmt.Sprintf("%s:%d", to.String(settings.Get("server", "bind")), to.Int64(settings.Get("server", "port")))
 			}
 
 			listener, err := net.Listen(domain, address)
 
 			if err != nil {
 				return err
-			}
-
-			// Loading and verifying host entries
-			entries := to.Map(settings.Get("hosts"))
-
-			for name, _ := range entries {
-				path := to.String(entries[name])
-
-				info, err := os.Stat(path)
-				if err != nil {
-					return fmt.Errorf("Failed to validate host %s: %s.", name, err.Error())
-				}
-				if info.IsDir() == false {
-					return fmt.Errorf("Host %s does not point to a directory.", name)
-				}
-				// Just allocating map key.
-				hosts[name], err = host.New(name, path)
-
-				if err != nil {
-					return fmt.Errorf("Failed to initialize host %s: %s.", name, err.Error())
-				}
-			}
-
-			if _, ok := entries["default"]; ok == false {
-				log.Printf("Warning: default host was not provided.")
 			}
 
 			defer listener.Close()
