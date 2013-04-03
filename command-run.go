@@ -52,7 +52,7 @@ var settings *yaml.Yaml
 var hosts map[string]*host.Host
 
 // Settings
-var flagConf = flag.String("c", "./settings.yaml", "Path to the settings.yaml file.")
+var flagConf = flag.String("c", DEFAULT_SETTINGS_FILE, "Path to the settings.yaml file.")
 
 func init() {
 
@@ -202,8 +202,7 @@ func (self *runCommand) Execute() error {
 					if ev == nil {
 						return
 					}
-					// fmt.Printf("ev: %v\n", ev)
-					if ev.IsModify() == true {
+					if ev.IsModify() {
 						log.Printf("Trying to reload settings file %s...\n", ev.Name)
 						y, err := loadSettings(ev.Name)
 						if err != nil {
@@ -211,8 +210,7 @@ func (self *runCommand) Execute() error {
 						} else {
 							settings = y
 						}
-					}
-					if ev.IsDelete() == true {
+					} else if ev.IsDelete() {
 						watcher.RemoveWatch(ev.Name)
 						watcher.Watch(ev.Name)
 					}

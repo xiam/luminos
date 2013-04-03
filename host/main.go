@@ -84,7 +84,11 @@ func (self *Host) Close() {
 // Returns a relative URL.
 func (self *Host) asset(url string) string {
 	if self.isExternalLink(url) == false {
-		return "/" + self.Path + "/" + strings.TrimLeft(url, "/")
+		if self.Path == "" {
+			return "/" + strings.TrimLeft(url, "/")
+		} else {
+			return "/" + self.Path + "/" + strings.TrimLeft(url, "/")
+		}
 	}
 	return url
 }
@@ -457,6 +461,7 @@ func (host *Host) loadTemplates() error {
 
 // Loads host settings.
 func (host *Host) loadSettings() error {
+
 	var settings *yaml.Yaml
 
 	file := host.DocumentRoot + PS + settingsFile
@@ -529,11 +534,13 @@ func New(name string, root string) (*Host, error) {
 
 					case ev := <-host.Watcher.Event:
 
+						fmt.Printf("%s: got ev: %v\n", host.Name, ev)
+
 						if ev == nil {
 							return
 						}
 
-						if ev.IsModify() == true {
+						if ev.IsModify() {
 							// Is settings file?
 							if ev.Name == host.DocumentRoot+PS+settingsFile {
 								log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
@@ -558,11 +565,12 @@ func New(name string, root string) (*Host, error) {
 								}
 							}
 
-						}
-						if ev.IsDelete() == true {
+						} else if ev.IsDelete() {
+							// Attemping to re-add watcher.
 							host.Watcher.RemoveWatch(ev.Name)
 							host.Watcher.Watch(ev.Name)
 						}
+
 					}
 				}
 
