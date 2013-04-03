@@ -75,6 +75,7 @@ func route(req *http.Request) *host.Host {
 
 	name := req.Host
 
+	// Stripping port from request.
 	if strings.Contains(name, ":") {
 		name = name[0:strings.Index(name, ":")]
 	}
@@ -86,7 +87,7 @@ func route(req *http.Request) *host.Host {
 
 	for key, _ := range hosts {
 		lkey := len(key)
-		if lkey > len(match) {
+		if lkey >= len(match) && lkey <= len(path) {
 			if path[0:lkey] == key {
 				match = key
 			}
