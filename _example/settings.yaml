@@ -1,5 +1,6 @@
 # Configuration file for Luminos.     http://luminos.menteslibres.org
 #
+#
 # You are viewing a YAML formatted file, read more about the format
 # at http://www.yaml.org.
 #
@@ -7,6 +8,7 @@
 #
 
 # SERVER CONFIGURATION
+# Changing server settings requires restart.
 server:
 
   # The IPv4 or IPv6 address to bind to.
@@ -25,7 +27,6 @@ hosts:
   # Default host: if a client makes a request for an unknown hosts or
   # without any host (by typing the ip directly).
   default: "./sites/default"
-
 
   # Uncomment the following line to route client requests for
   # "foo.example.org" to the "/path/to/foo.example.org/docs" directory.

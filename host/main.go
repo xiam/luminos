@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"github.com/gosexy/to"
 	"github.com/gosexy/yaml"
+	"github.com/howeyc/fsnotify"
 	md "github.com/russross/blackfriday"
 	"github.com/xiam/luminos/page"
 	"html/template"
@@ -40,7 +41,8 @@ import (
 )
 
 const (
-	PS = string(os.PathSeparator)
+	PS           = string(os.PathSeparator)
+	settingsFile = "site.yaml"
 )
 
 // Virtual host that serves document of a given directory.
@@ -54,7 +56,7 @@ type Host struct {
 	// Settings
 	Settings *yaml.Yaml
 	// Templates (not fully functional yet)
-	Templates map[string]*Template
+	Templates map[string]*template.Template
 	// Function map for templates.
 	template.FuncMap
 	// Standard request.
@@ -63,13 +65,10 @@ type Host struct {
 	http.ResponseWriter
 	// Function map
 	funcMap template.FuncMap
-}
-
-// A template
-type Template struct {
-	path  string
-	t     *template.Template
-	mtime time.Time
+	// File watcher
+	Watcher *fsnotify.Watcher
+	// Template root
+	TemplateRoot string
 }
 
 var extensions = []string{
@@ -78,10 +77,14 @@ var extensions = []string{
 	".txt",
 }
 
+func (self *Host) Close() {
+	self.Watcher.Close()
+}
+
 // Returns a relative URL.
 func (self *Host) asset(url string) string {
 	if self.isExternalLink(url) == false {
-		return self.Path + "/" + strings.TrimLeft(url, "/")
+		return "/" + self.Path + "/" + strings.TrimLeft(url, "/")
 	}
 	return url
 }
@@ -89,7 +92,11 @@ func (self *Host) asset(url string) string {
 // Returns an absolute URL.
 func (self *Host) url(url string) string {
 	if self.isExternalLink(url) == false {
-		return self.Name + self.asset(url)
+		if self.Name == "default" {
+			return "/" + self.asset(url)
+		} else {
+			return "//" + self.Name + "/" + strings.TrimLeft(url, "/")
+		}
 	}
 	return url
 }
@@ -136,9 +143,9 @@ func htmltext(text string) template.HTML {
 // Function for funcMap that writes links.
 func (host *Host) link(url, text string) template.HTML {
 	if host.isExternalLink(url) {
-		return template.HTML(fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, host.url(url), text))
+		return template.HTML(fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, host.asset(url), text))
 	}
-	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, host.url(url), text))
+	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, host.asset(url), text))
 }
 
 // Checks for files names and returns a guessed name.
@@ -221,11 +228,8 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	status := http.StatusNotFound
 	size := -1
 
-	// Updating settings and template files that have changed.
-	host.Update()
-
 	// Requested path
-	reqpath := req.URL.Path
+	reqpath := strings.Trim(req.URL.Path, "/")
 
 	// Stripping path
 	index := len(host.Path)
@@ -349,7 +353,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			p.CreateMenu()
 			p.CreateSideMenu()
 
-			err = host.Templates["index.tpl"].t.Execute(w, p)
+			err = host.Templates["index.tpl"].Execute(w, p)
 
 			if err == nil {
 				status = http.StatusOK
@@ -378,9 +382,32 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	)
 }
 
+func (self *Host) loadTemplate(file string) error {
+
+	name := path.Base(file)
+
+	parsed := template.New(name)
+
+	parsed, err := parsed.Funcs(self.funcMap).ParseFiles(file)
+
+	if err != nil {
+		return err
+	}
+
+	self.Templates[name] = parsed
+
+	if self.Watcher != nil {
+		self.Watcher.RemoveWatch(file)
+		self.Watcher.Watch(file)
+	}
+
+	return nil
+}
+
 // Loads templates with .tpl extension from the templates directory. At this
 // moment only index.tpl is expected.
 func (host *Host) loadTemplates() error {
+
 	tpldir := to.String(host.Settings.Get("document", "templates"))
 
 	if tpldir == "" {
@@ -395,6 +422,8 @@ func (host *Host) loadTemplates() error {
 		return fmt.Errorf("Error trying to open %s: %s", tplroot, err.Error())
 	}
 
+	host.TemplateRoot = tplroot
+
 	defer fp.Close()
 
 	files, err := fp.Readdir(-1)
@@ -403,56 +432,39 @@ func (host *Host) loadTemplates() error {
 		return fmt.Errorf("Error reading directory %s: %s", tplroot, err.Error())
 	}
 
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".tpl") == true {
+	for _, fp := range files {
 
-			tpl := tplroot + PS + file.Name()
+		if strings.HasSuffix(fp.Name(), ".tpl") == true {
 
-			if value, loaded := host.Templates[file.Name()]; loaded == true {
-				if value.mtime == file.ModTime() {
-					continue
-				} else {
-					log.Printf("%s: Reloading template %s...\n", host.Name, tpl)
-				}
-			} else {
-				log.Printf("%s: Loading template %s...\n", host.Name, tpl)
-			}
+			file := host.TemplateRoot + PS + fp.Name()
 
-			parsed := template.New(file.Name())
+			err := host.loadTemplate(file)
 
-			parsed, err = parsed.Funcs(host.funcMap).ParseFiles(tpl)
-
-			if err == nil {
-				host.Templates[file.Name()] = &Template{
-					path:  tpl,
-					t:     parsed,
-					mtime: file.ModTime(),
-				}
-			} else {
-				log.Printf("%s: Template error on file %s: %s\n", host.Name, tpl, err.Error())
+			if err != nil {
+				log.Printf("%s: Template error in file %s: %s\n", host.Name, file, err.Error())
 			}
 
 		}
 	}
 
 	if _, ok := host.Templates["index.tpl"]; ok == false {
-		return fmt.Errorf("Template %s could not be found.", tplroot+PS+"index.tpl")
+		return fmt.Errorf("Template %s could not be found.", "index.tpl")
 	}
 
 	return nil
 
 }
 
-// Loads settings into Host.Settings
+// Loads host settings.
 func (host *Host) loadSettings() error {
+	var settings *yaml.Yaml
 
-	file := host.DocumentRoot + PS + "site.yaml"
+	file := host.DocumentRoot + PS + settingsFile
 
 	_, err := os.Stat(file)
 
 	if err == nil {
-		host.Settings, err = yaml.Open(file)
-		log.Printf("%s: Loading settings file %s...\n", host.Name, file)
+		settings, err = yaml.Open(file)
 		if err != nil {
 			return fmt.Errorf(`Could not parse settings file (%s): %s`, file, err.Error())
 		}
@@ -460,22 +472,12 @@ func (host *Host) loadSettings() error {
 		return fmt.Errorf(`Error trying to open settings file (%s): %s.`, file, err.Error())
 	}
 
-	return nil
-}
-
-// Reloads templates and settings.
-func (host *Host) Update() error {
-	var err error
-
-	err = host.loadSettings()
-	if err != nil {
-		return err
+	if host.Watcher != nil {
+		host.Watcher.RemoveWatch(file)
+		host.Watcher.Watch(file)
 	}
 
-	err = host.loadTemplates()
-	if err != nil {
-		return err
-	}
+	host.Settings = settings
 
 	return nil
 }
@@ -489,20 +491,19 @@ func New(name string, root string) (*Host, error) {
 
 		name = strings.Trim(name, "/")
 
-		path := "/"
+		route := "/"
 
 		index := strings.Index(name, "/")
 
 		if index > 0 {
-			path = name[index:]
-			name = name[0:index]
+			route = name[index:]
 		}
 
 		host := &Host{
-			Name:         name,
-			Path:         path,
+			Name:         strings.Trim(name, "/"),
+			Path:         strings.Trim(route, "/"),
 			DocumentRoot: root,
-			Templates:    make(map[string]*Template),
+			Templates:    make(map[string]*template.Template),
 		}
 
 		host.funcMap = template.FuncMap{
@@ -515,7 +516,70 @@ func New(name string, root string) (*Host, error) {
 			"link":     func(a, b string) template.HTML { return host.link(a, b) },
 		}
 
-		err = host.Update()
+		// File watcher.
+		host.Watcher, err = fsnotify.NewWatcher()
+
+		if err == nil {
+
+			go func() {
+
+				for {
+
+					select {
+
+					case ev := <-host.Watcher.Event:
+
+						if ev == nil {
+							return
+						}
+
+						if ev.IsModify() == true {
+							// Is settings file?
+							if ev.Name == host.DocumentRoot+PS+settingsFile {
+								log.Printf("%s: Reloading host settings %s...\n", host.Name, ev.Name)
+								err := host.loadSettings()
+
+								if err != nil {
+									log.Printf("%s: Could not reload host settings: %s\n", host.Name, host.DocumentRoot+PS+settingsFile)
+								}
+							}
+
+							// Is a template?
+							if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
+
+								if strings.HasSuffix(ev.Name, ".tpl") == true {
+									log.Printf("%s: Reloading template %s", host.Name, ev.Name)
+									host.loadTemplate(ev.Name)
+
+									if err != nil {
+										log.Printf("%s: Could not reload template %s: %s", host.Name, ev.Name, err.Error())
+									}
+
+								}
+							}
+
+						}
+						if ev.IsDelete() == true {
+							host.Watcher.RemoveWatch(ev.Name)
+							host.Watcher.Watch(ev.Name)
+						}
+					}
+				}
+
+			}()
+
+		}
+
+		// Loading host settings
+		err := host.loadSettings()
+
+		if err != nil {
+			log.Printf("Could not start host: %s\n", name)
+			return nil, err
+		}
+
+		// Loading templates.
+		err = host.loadTemplates()
 
 		if err != nil {
 			log.Printf("Could not start host: %s\n", name)
