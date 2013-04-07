@@ -24,8 +24,8 @@
 package main
 
 import (
-	"menteslibres.net/gosexy/cli"
 	"log"
+	"menteslibres.net/gosexy/cli"
 )
 
 func main() {
