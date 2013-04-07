@@ -28,14 +28,11 @@
     <link rel="stylesheet" href="//menteslibres.net/static/normalize/normalize.css" />
 
     <link rel="stylesheet" href="//menteslibres.net/static/bootstrap/css/bootstrap.css" />
-    <link rel="stylesheet" href="//menteslibres.net/static/bootstrap/css/bootstrap-responsive.css" />
 
     <link rel="stylesheet" href="//menteslibres.net/static/highlightjs/styles/solarized_dark.css">
     <script src="//menteslibres.net/static/highlightjs/highlight.pack.js"></script>
 
     <link rel="stylesheet" href="{{ asset "/css/styles.css" }}" />
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <script type="text/javascript" src="{{ asset "/js/main.js" }}"></script>
 

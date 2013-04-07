@@ -16,7 +16,7 @@ $(document.body).ready(
 
     for (var i = 0; i < code.length; i++) {
       var el = $(code[i])
-      var img = $('<img>', { 'src': 'http://phibin.com/api/render?snippet='+encodeURIComponent(el.html()) });
+      var img = $('<img>', { 'src': '//menteslibres.net/api/latex/png?t='+encodeURIComponent(el.html()) });
       img.insertBefore(el);
       el.hide();
     };

@@ -1,4 +1,4 @@
-# Configuration file for Luminos.     http://luminos.menteslibres.org
+# Configuration file for Luminos.     https://menteslibres.net/luminos
 #
 #
 # You are viewing a YAML formatted file, read more about the format
@@ -22,6 +22,7 @@ server:
   type: "standalone"
 
 # VIRTUAL HOSTS CONFIGURATION
+# Changing virtual hosts does not require a restart.
 hosts:
 
   # Default host: if a client makes a request for an unknown hosts or
@@ -34,7 +35,7 @@ hosts:
 
   # Uncomment the following line to route client requests for
   # "foo.example.org/bar" to the "/path/to/foo.example.org/docs/foo" directory.
-  foo.example.org/docs: "./sites/default"
+  # foo.example.org/docs: "./sites/default"
 
   # Uncomment the following line to route client requests for
   # "bar.example.org" to the "/path/to/bar.example.org/docs" directory.
