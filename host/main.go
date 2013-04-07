@@ -25,8 +25,8 @@ package host
 
 import (
 	"fmt"
-	"github.com/gosexy/to"
-	"github.com/gosexy/yaml"
+	"menteslibres.net/gosexy/to"
+	"menteslibres.net/gosexy/yaml"
 	"github.com/howeyc/fsnotify"
 	md "github.com/russross/blackfriday"
 	"github.com/xiam/luminos/page"
@@ -288,11 +288,15 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			if reqpath != "" {
 				if stat.IsDir() == false {
 					if strings.HasSuffix(req.URL.Path, "/") == true {
-						http.Redirect(w, req, "/"+reqpath, 301)
+						http.Redirect(w, req, "/" + host.Path + "/" + reqpath, 301)
+						w.Write([]byte(http.StatusText(301)))
+						return
 					}
 				} else {
 					if strings.HasSuffix(req.URL.Path, "/") == false {
 						http.Redirect(w, req, req.URL.Path+"/", 301)
+						w.Write([]byte(http.StatusText(301)))
+						return
 					}
 				}
 			}

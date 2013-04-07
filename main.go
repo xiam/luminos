@@ -24,7 +24,7 @@
 package main
 
 import (
-	"github.com/gosexy/cli"
+	"menteslibres.net/gosexy/cli"
 	"log"
 )
 

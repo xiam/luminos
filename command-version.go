@@ -25,7 +25,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gosexy/cli"
+	"menteslibres.net/gosexy/cli"
 )
 
 const Version = "0.7"
