@@ -27,12 +27,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/howeyc/fsnotify"
+	//"github.com/howeyc/fsnotify"
 	"log"
 	"menteslibres.net/gosexy/cli"
 	"menteslibres.net/gosexy/to"
 	"menteslibres.net/gosexy/yaml"
 	"menteslibres.net/luminos/host"
+	"menteslibres.net/luminos/watcher"
 	"net"
 	"net/http"
 	"net/http/fcgi"
@@ -52,7 +53,9 @@ var settings *yaml.Yaml
 var hosts map[string]*host.Host
 
 // Settings
-var flagConf = flag.String("c", DEFAULT_SETTINGS_FILE, "Path to the settings.yaml file.")
+var flagSettings = flag.String("c", DEFAULT_SETTINGS_FILE, "Path to the settings.yaml file.")
+
+var watch *watcher.Watcher
 
 func init() {
 
@@ -173,68 +176,107 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 	return y, nil
 }
 
-func (self *runCommand) Execute() error {
+func settingsWatcher() error {
 
-	// Default settings file.
-	settingsFile := DEFAULT_SETTINGS_FILE
+	var err error
 
-	if *flagConf != "" {
-		// Overriding settings file.
-		settingsFile = *flagConf
-	}
+	/*
+		// Watching settings file for changes.
+		// Was not properly returning events on OSX.
+		// https://github.com/howeyc/fsnotify/issues/34
 
-	stat, err := os.Stat(settingsFile)
+		watcher, err := fsnotify.NewWatcher()
 
-	if err != nil {
-		return fmt.Errorf("Error while opening %s: %s", settingsFile, err.Error())
-	}
+		if err == nil {
+			defer watcher.Close()
 
-	// Watching settings file for changes.
-	watcher, err := fsnotify.NewWatcher()
+			go func() {
+				for {
+					select {
+					case ev := <-watcher.Event:
+						if ev == nil {
+							return
+						}
+						if ev.IsModify() {
+							log.Printf("Trying to reload settings file %s...\n", ev.Name)
+							y, err := loadSettings(ev.Name)
+							if err != nil {
+								log.Printf("Error loading settings file %s: %s\n", ev.Name, err.Error())
+							} else {
+								settings = y
+							}
+						} else if ev.IsDelete() {
+							watcher.RemoveWatch(ev.Name)
+							watcher.Watch(ev.Name)
+						}
+					case err := <-watcher.Error:
+						log.Printf("Watcher error: %s\n", err.Error())
+					}
+				}
+			}()
+
+			watcher.Watch(settingsFile)
+		}
+	*/
+
+	// (Stupid) file modification watcher.
+	watch, err = watcher.New()
 
 	if err == nil {
-		defer watcher.Close()
-
 		go func() {
+			defer watch.Close()
 			for {
 				select {
-				case ev := <-watcher.Event:
-					if ev == nil {
-						return
-					}
+				case ev := <-watch.Event:
 					if ev.IsModify() {
-						log.Printf("Trying to reload settings file %s...\n", ev.Name)
 						y, err := loadSettings(ev.Name)
 						if err != nil {
 							log.Printf("Error loading settings file %s: %s\n", ev.Name, err.Error())
 						} else {
+							log.Printf("Reloading settings file %s.\n", ev.Name)
 							settings = y
 						}
-					} else if ev.IsDelete() {
-						watcher.RemoveWatch(ev.Name)
-						watcher.Watch(ev.Name)
 					}
-				case err := <-watcher.Error:
-					log.Printf("Watcher error: %s\n", err.Error())
 				}
 			}
 		}()
 
-		watcher.Watch(settingsFile)
+	}
+
+	return err
+}
+
+func (self *runCommand) Execute() error {
+
+	// Default settings file.
+	if *flagSettings == "" {
+		*flagSettings = DEFAULT_SETTINGS_FILE
+	}
+
+	stat, err := os.Stat(*flagSettings)
+
+	if err != nil {
+		return fmt.Errorf("Error while opening %s: %s", *flagSettings, err.Error())
 	}
 
 	if stat != nil {
 
 		if stat.IsDir() == true {
 
-			return fmt.Errorf("Could not open %s: it's a directory!", settingsFile)
+			return fmt.Errorf("Could not open %s: it's a directory!", *flagSettings)
 
 		} else {
 
-			settings, err = loadSettings(settingsFile)
+			settings, err = loadSettings(*flagSettings)
 
 			if err != nil {
-				return fmt.Errorf("Error while reading settings file %s: %s", settingsFile, err.Error())
+				return fmt.Errorf("Error while reading settings file %s: %s", *flagSettings, err.Error())
+			}
+
+			err = settingsWatcher()
+
+			if err == nil {
+				watch.Watch(*flagSettings)
 			}
 
 			serverType := to.String(settings.Get("server", "type"))
@@ -276,7 +318,7 @@ func (self *runCommand) Execute() error {
 
 		}
 	} else {
-		return fmt.Errorf("Could not load settings file: %s.", settingsFile)
+		return fmt.Errorf("Could not load settings file: %s.", *flagSettings)
 	}
 
 	return nil
