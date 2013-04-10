@@ -1,9 +1,8 @@
 # Luminos, markdown server
 
-[Luminos][5] is a tiny HTTP/FastCGI server that transforms [markdown][3]
-files into HTML on the fly, it was highly inspired by [werc][1].
-
-[Luminos][5] is written in the Go programming language.
+[Luminos][5] is a tiny HTTP/FastCGI server written in [Go][2] that transforms
+[markdown][3] files into HTML on the fly. It was highly inspired by [werc][1]
+but built with less options in mind.
 
 ```
 Luminos Markdown Server (0.7) - https://menteslibres.net/luminos
@@ -38,7 +37,7 @@ Use `go get ` to download, compile and install Luminos to your
 `$GOPATH/bin`
 
 ```sh
-$ go get menteslibres.net/luminos
+go get menteslibres.net/luminos
 ```
 
 Then use `luminos init` to create an example project and `luminos run` to serve
@@ -46,11 +45,11 @@ it.
 
 
 ```sh
-$ mkdir -p ~/projects/
-$ cd ~/projects/
-$ luminos init luminos-example-project
-$ cd luminos-example-project
-$ luminos run
+mkdir -p ~/projects/
+cd ~/projects/
+luminos init luminos-example-project
+cd luminos-example-project
+luminos run
 ```
 
 ## Documentation
