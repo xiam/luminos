@@ -33,7 +33,7 @@ func main() {
 
 	// Software properties.
 	cli.Name = "Luminos Markdown Server"
-	cli.Homepage = "http://luminos.menteslibres.org"
+	cli.Homepage = "https://menteslibres.net/luminos"
 	cli.Author = "Carlos Reventlov"
 	cli.Version = Version
 	cli.AuthorEmail = "carlos@reventlov.com"
