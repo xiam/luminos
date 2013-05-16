@@ -46,6 +46,10 @@ const (
 	settingsFile = "site.yaml"
 )
 
+var (
+	isExternalLinkPattern = regexp.MustCompile(`^[a-zA-Z0-9]+:\/\/`)
+)
+
 // Virtual host that serves document of a given directory.
 type Host struct {
 	// Host name
@@ -98,18 +102,13 @@ func (self *Host) asset(url string) string {
 // Returns an absolute URL.
 func (self *Host) url(url string) string {
 	if self.isExternalLink(url) == false {
-		if self.Name == "default" {
-			return "/" + self.asset(url)
-		} else {
-			return "//" + self.Name + "/" + strings.TrimLeft(url, "/")
-		}
+		return "//" + self.Request.Host + "/" + strings.TrimLeft(url, "/")
 	}
 	return url
 }
 
 func (self *Host) isExternalLink(url string) bool {
-	test, _ := regexp.Compile(`^[a-z0-9]+:\/\/`)
-	return test.MatchString(url)
+	return isExternalLinkPattern.MatchString(url)
 }
 
 // Function for funcMap that returns a setting value.
@@ -229,6 +228,12 @@ func chunk(value string) string {
 func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var localFile string
+
+	// TODO: Fix this non-critical race condition.
+	// We need to save some variables in a per request basis, in particular the
+	// hostname. It may not always match the host name we gave to it (i.e: the
+	// "default" hostname). A per-request context would be useful.
+	host.Request = req
 
 	// Default status.
 	status := http.StatusNotFound
