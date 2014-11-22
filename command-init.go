@@ -1,25 +1,23 @@
-/*
-  Copyright (c) 2012-2013 José Carlos Nieto, http://xiam.menteslibres.org/
-
-  Permission is hereby granted, free of charge, to any person obtaining
-  a copy of this software and associated documentation files (the
-  "Software"), to deal in the Software without restriction, including
-  without limitation the rights to use, copy, modify, merge, publish,
-  distribute, sublicense, and/or sell copies of the Software, and to
-  permit persons to whom the Software is furnished to do so, subject to
-  the following conditions:
-
-  The above copyright notice and this permission notice shall be
-  included in all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+// Copyright (c) 2012-2014 José Carlos Nieto, https://menteslibres.net/xiam
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package main
 
@@ -30,71 +28,78 @@ import (
 	"os"
 )
 
-func init() {
-	cli.Register("init", cli.Entry{
-		Description: "Initializes a working directory with a Luminos base project.",
-		Usage:       "init [directory]",
-		Command:     &initCommand{},
-	})
-}
-
+// initCommand is the structure that provides instructions for the "luminos
+// init" subcommand.
 type initCommand struct {
 }
 
-func (self *initCommand) Execute() error {
+// Execute creates a new luminos site scaffold in the given PATH.
+func (c *initCommand) Execute() (err error) {
+	var stat os.FileInfo
 
-	var err error
-
-	// Default destinarion is current working directory
+	// Default PATH if the current working directory.
 	dest := "."
 
+	// If a PATH was given, use it instead of the default PATH.
 	if flag.NArg() > 1 {
 		dest = flag.Arg(1)
 	}
 
-	stat, _ := os.Stat(dest)
-
-	if stat == nil {
-		// Directory does not exists, attemping to create it.
-		err = os.MkdirAll(dest, os.ModeDir|0755)
-		if err != nil {
+	// Verifying PATH.
+	if stat, _ = os.Stat(dest); stat == nil {
+		// Directory does not exists, try to create it.
+		// TODO: Use system's default mask.
+		if err = os.MkdirAll(dest, os.ModeDir|0755); err != nil {
 			return err
 		}
 	} else {
 		// Path exists, is it a directory?
 		if stat.IsDir() == false {
-			return fmt.Errorf("Cannot create directory, file %s already exists.", dest)
+			// Nope, the we can't use it.
+			return fmt.Errorf("Cannot create directory, file %s already exists!", dest)
 		}
 	}
 
-	lockFile := dest + PS + ".luminos"
+	// If the PATH was already initialized, then it must contain a LOCKFILE.
+	lockFile := dest + pathSeparator + ".luminos"
 
-	stat, _ = os.Stat(lockFile)
-
-	if stat == nil {
-
-		err = unpackExampleProject(dest)
-
-		if err != nil {
-			return err
-		}
-
-		lfp, _ := os.Create(lockFile)
-		lfp.Close()
-
+	if stat, _ = os.Stat(lockFile); stat != nil {
+		// If the LOCKFILE exists we cannot continue.
 		if dest == "." {
-			fmt.Printf("Created an empty Luminos project in the current directory.\n")
-		} else {
-			fmt.Printf("Created an empty Luminos project in %s/.\n", dest)
+			// Use "the current directory" to avoid confusing non-technical users
+			// with a dot instead of a full PATH.
+			return fmt.Errorf("A Luminos project already exists at the current directory.")
 		}
+		return fmt.Errorf("A luminos project already exists in %s.", dest)
+	}
 
+	// We may extract the example project now.
+	if err = unpackExampleProject(dest); err != nil {
+		return err
+	}
+
+	// And then create the LOCKFILE.
+	var lfp *os.File
+	if lfp, err = os.Create(lockFile); err != nil {
+		return err
+	}
+	lfp.Close()
+
+	// All done! Let's tell the user we've finished.
+	if dest == "." {
+		fmt.Printf("New project created at the current directory.")
 	} else {
-		if dest == "." {
-			return fmt.Errorf("A Luminos project already exists in the current directory.\n")
-		} else {
-			return fmt.Errorf("A Luminos project already exists in %s/.\n", dest)
-		}
+		fmt.Printf("New project created at %s.", dest)
 	}
 
 	return nil
+}
+
+func init() {
+	// Describing the "init" subcommand.
+	cli.Register("init", cli.Entry{
+		Description: "Creates a new Luminos site scaffold in the given PATH.",
+		Usage:       "init [PATH]",
+		Command:     &initCommand{},
+	})
 }
