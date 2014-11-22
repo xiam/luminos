@@ -35,31 +35,35 @@ import (
 	"strings"
 )
 
-// Hosts map.
+// Map of hosts.
 var hosts map[string]*host.Host
 
+// File watcher.
 var watch *watcher.Watcher
 
 type server struct {
 }
 
 func init() {
+	// Allocating map.
 	hosts = make(map[string]*host.Host)
 }
 
-// Dispatches a request and returns the appropriate host.
+// Finds the appropriate hosts for a request.
 func route(req *http.Request) *host.Host {
 
+	// Request's hostname.
 	name := req.Host
 
-	// Stripping port from request.
+	// Removing the port part of the host.
 	if strings.Contains(name, ":") {
 		name = name[0:strings.Index(name, ":")]
 	}
 
+	// Host and path.
 	path := name + req.URL.Path
 
-	// Searching for best match for host.
+	// Searching for the host that best matches this request.
 	match := ""
 
 	for key, _ := range hosts {
@@ -71,19 +75,20 @@ func route(req *http.Request) *host.Host {
 		}
 	}
 
+	// No host matched, let's use the default host.
 	if match == "" {
-		log.Printf("Could not match any host: %s, falling back to default.\n", req.Host)
+		log.Printf("Could not match any host: %s, falling back to the default.\n", req.Host)
 		match = "default"
 	}
 
-	if _, ok := hosts[match]; ok == true {
-		return hosts[match]
+	// Let's verify and return the host.
+
+	if _, ok := hosts[match]; !ok {
+		// Host was not found.
+		log.Printf("Request for unknown host: %s\n", req.Host)
 	}
 
-	log.Printf("Request for unknown host: %s\n", req.Host)
-
-	return nil
-
+	return hosts[match]
 }
 
 // Routes a request and lets the host handle it.
@@ -116,6 +121,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 
 	h := map[string]*host.Host{}
 
+	// Populating host entries.
 	for key, _ := range entries {
 		name := to.String(key)
 		path := to.String(entries[name])
@@ -191,7 +197,7 @@ func settingsWatcher() error {
 		}
 	*/
 
-	// (Stupid) file modification watcher.
+	// (Stupid) time based file modification watcher.
 	watch, err = watcher.New()
 
 	if err == nil {
