@@ -66,7 +66,7 @@ func route(req *http.Request) *host.Host {
 	// Searching for the host that best matches this request.
 	match := ""
 
-	for key, _ := range hosts {
+	for key := range hosts {
 		lkey := len(key)
 		if lkey >= len(match) && lkey <= len(path) {
 			if path[0:lkey] == key {
@@ -92,7 +92,7 @@ func route(req *http.Request) *host.Host {
 }
 
 // Routes a request and lets the host handle it.
-func (self server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
+func (s server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	r := route(req)
 	if r != nil {
 		r.ServeHTTP(wri, req)
@@ -122,7 +122,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 	h := map[string]*host.Host{}
 
 	// Populating host entries.
-	for key, _ := range entries {
+	for key := range entries {
 		name := to.String(key)
 		path := to.String(entries[name])
 
@@ -141,7 +141,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 		}
 	}
 
-	for name, _ := range hosts {
+	for name := range hosts {
 		hosts[name].Close()
 	}
 
