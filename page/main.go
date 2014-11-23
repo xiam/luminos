@@ -33,27 +33,27 @@ import (
 // Page struct holds information on the current document being served.
 type Page struct {
 
-	// Page's title, this is guessed from the current document. (Looks for the
-	// first H1, H2, ..., H6 tag)
+	// Title of the page. This is guessed from the current document. (It looks
+	// for the first H1, H2, ..., H6 tag).
 	Title string
 
-	// The HTML of the current document.
+	// The HTML source of the current document.
 	Content template.HTML
 
-	// The HTML of the _header.md or _header.html file on the current document's
-	// directory.
+	// The HTML source of the _header.md or _header.html file on the current
+	// document's directory.
 	ContentHeader template.HTML
 
-	// The HTML of the _footer.md or _footer.html file on the current document's
-	// directory.
+	// The HTML source of the _footer.md or _footer.html file on the current
+	// document's directory.
 	ContentFooter template.HTML
 
 	// An array of maps that contains names and links of all the items on the
-	// document root.  Names begginning with "." or "_" are ignored in this list.
+	// document root.  Names that begin with "." or "_" are ignored in this list.
 	Menu []map[string]interface{}
 
 	// An array of maps that contains names and links of all the items on the
-	// current document's directory.  Names begginning with "." or "_" are
+	// current document's directory.  Names that begin with "." or "_" are
 	// ignored in this list.
 	SideMenu []map[string]interface{}
 
@@ -61,7 +61,7 @@ type Page struct {
 	// path.
 	BreadCrumb []map[string]interface{}
 
-	// A map that contains name and link of the current page.
+	// A map that contains the name and link of the current page.
 	CurrentPage map[string]interface{}
 
 	// Absolute path of the current document.
@@ -80,8 +80,12 @@ type Page struct {
 	IsHome bool
 }
 
-// List of extensions to look for. Elements on the left have precedence.
-var extensions = []string{".html", ".md", ""}
+const (
+	pathSeparator = string(os.PathSeparator)
+)
+
+// List of known extensions.
+var knownExtensions = []string{".html", ".md", ""}
 
 // fileList struct is a sorted list of files.
 type fileList []os.FileInfo
@@ -98,17 +102,11 @@ func (f fileList) Swap(i, j int) {
 	f[i], f[j] = f[j], f[i]
 }
 
-type byName struct{ fileList }
-
-const (
-	pathSeparator = string(os.PathSeparator)
-)
-
 // removeKnownExtension strips out known extensions from a given file name.
 func removeKnownExtension(s string) string {
 	fileExt := path.Ext(s)
 
-	for _, ext := range extensions {
+	for _, ext := range knownExtensions {
 		if ext != "" {
 			if fileExt == ext {
 				return s[:len(s)-len(ext)]
@@ -146,7 +144,7 @@ func filterList(directory string, filter func(os.FileInfo) bool) fileList {
 	}
 
 	// Sorting file list.
-	sort.Sort(byName{list})
+	sort.Sort(struct{ fileList }{list})
 
 	return list
 }
@@ -154,7 +152,7 @@ func filterList(directory string, filter func(os.FileInfo) bool) fileList {
 // dummyFilter is a filter for filterList. Returns all files except for those
 // that begin with "." or "_".
 func dummyFilter(f os.FileInfo) bool {
-	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
+	if !strings.HasPrefix(f.Name(), ".") && !strings.HasPrefix(f.Name(), "_") {
 		return true
 	}
 	return false
@@ -163,7 +161,7 @@ func dummyFilter(f os.FileInfo) bool {
 // directoryFilter is a filter for filterList. Returns all directories except
 // those that begin with "." or "_".
 func directoryFilter(f os.FileInfo) bool {
-	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
+	if !strings.HasPrefix(f.Name(), ".") && !strings.HasPrefix(f.Name(), "_") {
 		return f.IsDir()
 	}
 	return false
@@ -172,19 +170,16 @@ func directoryFilter(f os.FileInfo) bool {
 // fileFilter is a filter for filterList. Returns all files except for those
 // that begin with "." or "_".
 func fileFilter(f os.FileInfo) bool {
-	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
+	if !strings.HasPrefix(f.Name(), ".") && !strings.HasPrefix(f.Name(), "_") {
 		return (f.IsDir() == false)
 	}
 	return false
 }
 
-// createTitle returns a stylized human title, given a file name.
+// createTitle expects a filename and returns a stylized human title.
 func createTitle(s string) string {
 	s = removeKnownExtension(s)
-
-	re, _ := regexp.Compile("[-_]")
-	s = re.ReplaceAllString(s, " ")
-
+	s = regexp.MustCompile("[-_]").ReplaceAllString(s, " ")
 	return strings.Title(s[:1]) + s[1:]
 }
 
@@ -203,7 +198,7 @@ func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{
 	return item
 }
 
-// CreateMenu scans files and directories and creates a menu.
+// CreateMenu scans files and directories and builds a list of children links.
 func (p *Page) CreateMenu() {
 	var item map[string]interface{}
 	p.Menu = []map[string]interface{}{}
