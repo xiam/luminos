@@ -35,8 +35,6 @@ const pathSeparator = string(os.PathSeparator)
 const Version = "0.9"
 
 func main() {
-	var err error
-
 	// Software properties.
 	cli.Name = "Luminos Markdown Server"
 	cli.Homepage = "https://menteslibres.net/luminos"
@@ -48,10 +46,8 @@ func main() {
 	cli.Banner()
 
 	// Dispatches the command.
-	err = cli.Dispatch()
-
-	if err != nil {
-		log.Fatalf("Could not start Luminos: %q\n", err)
+	if err := cli.Dispatch(); err != nil {
+		log.Fatal("Could not start Luminos: ", err)
 	}
 
 }
