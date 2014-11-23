@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
 
   <head>
     <link href="http://gmpg.org/xfn/11" rel="profile">
@@ -21,157 +21,96 @@
       {{ end }}
     </title>
 
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
 
     <!-- CSS -->
     <link rel="stylesheet" href="{{ asset "/css/poole.css" }}">
     <link rel="stylesheet" href="{{ asset "/css/syntax.css" }}">
+    <link rel="stylesheet" href="{{ asset "/css/hyde.css" }}">
+    <link rel="stylesheet" href="{{ asset "/css/luminos.css" }}">
+
+    <!-- External fonts -->
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=Open+Sans:300,400italic,400,600,700|Abril+Fatface" rel="stylesheet" type="text/css">
 
     <!-- Icons -->
     <link rel="apple-touch-icon-precomposed" sizes="144x144" href="{{ asset "/apple-touch-icon-precomposed.png" }}">
     <link rel="shortcut icon" href="{{ asset "/favicon.ico"}}">
 
-    <style type="text/css">
-      code {
-        font-family: 'Source Code Pro';
-      }
-    </style>
-
   </head>
 
   <body>
 
-    <div class="container content">
-      <header class="masthead">
-        <h3 class="masthead-title">
-          <a href="{{ asset "/" }}" title="Home">{{ setting "page/body/title" }}</a>
-          <small>{{ setting "page/brand" }}</small>
-        </h3>
-      </header>
-
-      <main>
-
-    {{ if settings "page/body/menu" }}
-      <ul id="nav" class="nav menu">
-        {{ range settings "page/body/menu" }}
-          <li>{{ link .url .text }}</li>
-        {{ end }}
-      </ul>
-    {{ end }}
-    {{ if settings "page/body/menu_pull" }}
-      <ul id="nav" class="nav pull-right menu">
-        {{ range settings "page/body/menu_pull" }}
-          <li>{{ link .url .text }}</li>
-        {{ end }}
-      </ul>
-    {{ end }}
-
-    {{ if .IsHome }}
-
-      <div class="hero-unit">
-
-        <h1>Luminos</h1>
-        <p>
-					A tiny server for markdown documents
-        </p>
-
-        <p class="pull-right">
-          <a href="http://luminos.menteslibres.org" target="_blank" class="btn btn-large btn-primary">
-            Homepage
-          </a>
-        </p>
-
-      </div>
-
-      <div class="container-fluid">
-        <div class="row">
-          <div class="span11">
-            {{ .ContentHeader }}
-
-            {{ .Content }}
-
-            {{ .ContentFooter }}
-          </div>
+    <!-- sidebar -->
+    <div class="sidebar">
+      <div class="container sidebar-sticky">
+        <div class="sidebar-about">
+          <h1>
+            <a href="{{ asset "/" }}">
+              {{ setting "page/brand" }}
+            </a>
+          </h1>
+          <p class="lead">{{ setting "page/body/title" }}</p>
         </div>
-      </div>
 
-    {{ else }}
+        <nav class="sidebar-nav">
+          <a class="sidebar-nav-item active" href="{{ asset "/" }}">Home</a>
 
-      {{ if .BreadCrumb }}
-        <ul class="breadcrumb menu">
-          {{ range .BreadCrumb }}
-            <li><a href="{{ asset .link }}">{{ .text }}</a> <span class="divider">/</span></li>
-          {{ end }}
-        </ul>
-      {{ end }}
-
-      <div class="container-fluid">
-
-        <div class="row">
-          {{ if .SideMenu }}
-            {{ if .Content }}
-              <div class="span3">
-                  <ul class="nav nav-list menu">
-                    {{ range .SideMenu }}
-                      <li>
-                        <a href="{{ asset .link }}">{{ .text }}</a>
-                      </li>
-                    {{ end }}
-                  </ul>
-              </div>
-              <div class="span8">
-                {{ .ContentHeader }}
-
-                {{ .Content }}
-
-                {{ .ContentFooter }}
-              </div>
-            {{ else }}
-              <div class="span11">
-                {{ if .CurrentPage }}
-                  <h1>{{ .CurrentPage.text }}</h1>
-                {{ end }}
-                <ul class="nav nav-list menu">
-                  {{ range .SideMenu }}
-                    <li>
-                      <a href="{{ asset .link }}">{{ .text }}</a>
-                    </li>
-                  {{ end }}
-                </ul>
-              </div>
+          {{ if settings "page/body/menu" }}
+            {{ range settings "page/body/menu" }}
+              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
             {{ end }}
-          {{ else }}
-            <div class="span11">
-              {{ .ContentHeader }}
-
-              {{ .Content }}
-
-              {{ .ContentFooter }}
-            </div>
           {{ end }}
-        </div>
 
+          {{ if settings "page/body/menu_pull" }}
+            {{ range settings "page/body/menu_pull" }}
+              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+            {{ end }}
+          {{ end }}
+
+          {{ if .SideMenu }}
+            {{ range .SideMenu }}
+              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+            {{ end }}
+          {{ end }}
+
+          <a class="sidebar-nav-item" href="https://menteslibres.net/luminos/download">Download</a>
+          <a class="sidebar-nav-item" href="https://github.com/xiam/luminos">GitHub project</a>
+          <span class="sidebar-nav-item">Currently v0.9</span>
+        </nav>
+
+        <p>&copy; 2014. Some rights reserved.</p>
       </div>
-
-    {{ end }}
-
-
-      </main>
-
-      <footer class="footer">
-        <small>
-          &copy; 2014. {{ setting "page/brand" }}
-        </small>
-      </footer>
     </div>
 
-    {{ if setting "page/body/scripts/footer" }}
-      <script type="text/javascript">
-        {{ setting "page/body/scripts/footer" | jstext }}
-      </script>
-    {{ end }}
+    <div class="content container">
+      {{ if .Content }}
+        {{ .ContentHeader }}
+
+        {{ .Content }}
+
+        {{ .ContentFooter }}
+      {{ else }}
+
+        {{ if .CurrentPage }}
+          <h1>{{ .CurrentPage.text }}</h1>
+        {{ end }}
+
+        <ul>
+          {{ range .SideMenu }}
+            <li>
+              <a href="{{ asset .link }}">{{ .text }}</a>
+            </li>
+          {{ end }}
+        </ul>
+
+      {{end}}
+    </div>
+
+  {{ if setting "page/body/scripts/footer" }}
+    <script type="text/javascript">
+      {{ setting "page/body/scripts/footer" | jstext }}
+    </script>
+  {{ end }}
 
   </body>
 </html>
-
-
