@@ -193,6 +193,8 @@ func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{
 		item["link"] = prefix + removeKnownExtension(file.Name())
 	}
 
+	item["link"] = path.Clean(item["link"].(string))
+
 	item["text"] = createTitle(file.Name())
 
 	return item
@@ -259,5 +261,23 @@ func (p *Page) CreateSideMenu() {
 		if strings.ToLower(item["text"].(string)) != "index" {
 			p.SideMenu = append(p.SideMenu, item)
 		}
+	}
+
+	if strings.Trim(p.BasePath, "/") == "" {
+		return
+	}
+
+	if len(p.SideMenu) == 0 {
+
+		// Attempt to index parent directory.
+		files = filterList(p.FileDir+pathSeparator+"..", dummyFilter)
+
+		for _, file := range files {
+			item = p.CreateLink(file, p.BasePath+".."+pathSeparator)
+			if strings.ToLower(item["text"].(string)) != "index" {
+				p.SideMenu = append(p.SideMenu, item)
+			}
+		}
+
 	}
 }

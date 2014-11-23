@@ -56,7 +56,7 @@
         {{ if settings "page/body/menu_pull" }}
           <ul class="nav nav-tabs">
           {{ range settings "page/body/menu_pull" }}
-            <li><a href="{{ .url }}">{{ .text }}</a></li>
+            <li><a href="{{ .link }}">{{ .text }}</a></li>
           {{ end }}
           </ul>
         {{ end }}
@@ -73,17 +73,17 @@
         <nav class="sidebar-nav">
           {{ if .IsHome }}
             {{ range settings "page/body/menu" }}
-              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+              <a class="sidebar-nav-item" href="{{ .link }}">{{ .text }}</a>
             {{ end }}
 
           {{ else }}
             {{ if .SideMenu }}
               {{ range .SideMenu }}
-                <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+                <a class="sidebar-nav-item" href="{{ .link }}">{{ .text }}</a>
               {{ end }}
             {{ else }}
               {{ range settings "page/body/menu" }}
-                <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+                <a class="sidebar-nav-item" href="{{ .link }}">{{ .text }}</a>
               {{ end }}
             {{ end }}
           {{ end }}
@@ -97,7 +97,7 @@
             <div class="collapse navbar-collapse">
               <ul class="nav navbar-nav">
               {{ range settings "page/body/menu" }}
-                <li><a href="{{ .url }}">{{ .text }}</a></li>
+                <li><a href="{{ .link }}">{{ .text }}</a></li>
               {{ end }}
               </ul>
             </div>
@@ -143,7 +143,9 @@
 
       {{end}}
 
-      <p>{{ setting "page/body/copyright" | htmltext }}</p>
+      {{ if setting "page/body/copyright" }}
+        <p>{{ setting "page/body/copyright" | htmltext }}</p>
+      {{ end }}
 
     </div>
 

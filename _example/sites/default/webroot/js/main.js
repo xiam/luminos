@@ -11,12 +11,13 @@
   };
 
   var normalizeLink = function(s) {
-    if (s) {
+    if (s != null) {
       s = s.replace(/^\/+/g, '');
       s = s.replace(/\/+$/g, '');
       console.log(s);
       return s;
     };
+    return "";
   };
 
   // setActiveLinks loops over relevant links and sets the active class if
