@@ -1,3 +1,60 @@
+(function() {
+
+  var getParent = function(start, fn) {
+    while (start) {
+      if (fn(start)) {
+        return start;
+      };
+      start = start.parentNode;
+    };
+    return null;
+  };
+
+  var normalizeLink = function(s) {
+    if (s) {
+      s = s.replace(/^\/+/g, '');
+      s = s.replace(/\/+$/g, '');
+      console.log(s);
+      return s;
+    };
+  };
+
+  // setActiveLinks loops over relevant links and sets the active class if
+  // required.
+  var setActiveLinks = function() {
+    var anchors = document.body.querySelectorAll('a');
+
+    for (var i = 0; i < anchors.length; i++) {
+      var anchor = anchors[i];
+      if (anchor) {
+        if (normalizeLink(anchor.getAttribute('href')) == normalizeLink(document.location.pathname)) {
+          // Look for a suitable parent.
+          var li = getParent(anchor, function(el) {
+            if (el.tagName == 'LI') {
+              return true;
+            };
+            return false;
+          });
+          if (li) {
+            li.className += ' active';
+          } else {
+            anchor.className += ' active';
+          };
+        };
+      };
+    };
+  };
+
+  // load sets the task to be run at page loaded event.
+  var load = function() {
+    setActiveLinks();
+  };
+
+  window.onload = load;
+})();
+
+
+/*
 $(document.body).ready(
   function() {
     // Code (marking code blocks for prettyPrint)
@@ -46,3 +103,4 @@ $(document.body).ready(
 
   }
 );
+*/

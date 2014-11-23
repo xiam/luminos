@@ -29,3 +29,5 @@ page:
     # Top-right navigation helper.
     menu_pull:
       - { text: "Home", url: "/" }
+
+    copyright: "&copy; 2012-2014. J. Carlos Nieto."

@@ -39,8 +39,10 @@
     <script src="//menteslibres.net/static/highlightjs/highlight.pack.js?v0000"></script>
     <script>hljs.initHighlightingOnLoad();</script>
 
-    <!-- Luminos styles -->
+    <!-- Luminos -->
     <link rel="stylesheet" href="{{ asset "/css/luminos.css" }}">
+    <script src="{{asset "js/main.js"}}"></script>
+
 
   </head>
 
@@ -48,7 +50,17 @@
 
     <!-- sidebar -->
     <div class="sidebar">
+
       <div class="container">
+
+        {{ if settings "page/body/menu_pull" }}
+          <ul class="nav nav-tabs">
+          {{ range settings "page/body/menu_pull" }}
+            <li><a href="{{ .url }}">{{ .text }}</a></li>
+          {{ end }}
+          </ul>
+        {{ end }}
+
         <div class="sidebar-about">
           <h1>
             <a href="{{ asset "/" }}">
@@ -56,46 +68,55 @@
             </a>
           </h1>
           <p class="lead">{{ setting "page/body/title" }}</p>
-
-          {{ if settings "page/body/menu_pull" }}
-            {{ range settings "page/body/menu_pull" }}
-              <small><a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a></small>
-            {{ end }}
-          {{ end }}
         </div>
 
         <nav class="sidebar-nav">
-
-          {{ if .SideMenu }}
-            <ul>
-            {{ range .SideMenu }}
-              <li><a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a></li>
-            {{ end }}
-            </ul>
-            <hr />
-          {{ end }}
-
-          {{ if settings "page/body/menu" }}
+          {{ if .IsHome }}
             {{ range settings "page/body/menu" }}
-              <small><a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a></small>
+              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+            {{ end }}
+
+          {{ else }}
+            {{ if .SideMenu }}
+              {{ range .SideMenu }}
+                <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+              {{ end }}
+            {{ else }}
+              {{ range settings "page/body/menu" }}
+                <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+              {{ end }}
             {{ end }}
           {{ end }}
-
-
         </nav>
 
-        <p>&copy; 2014. Some rights reserved.</p>
       </div>
+
+      {{ if not .IsHome }}
+        {{ if .SideMenu }}
+          {{ if settings "page/body/menu" }}
+            <div class="collapse navbar-collapse">
+              <ul class="nav navbar-nav">
+              {{ range settings "page/body/menu" }}
+                <li><a href="{{ .url }}">{{ .text }}</a></li>
+              {{ end }}
+              </ul>
+            </div>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
     </div>
 
     <div class="content container">
 
-     {{ if .BreadCrumb }}
-        <ul class="breadcrumb menu">
-          {{ range .BreadCrumb }}
-            <li><a href="{{ asset .link }}">{{ .text }}</a> <span class="divider">/</span></li>
-          {{ end }}
-        </ul>
+      {{ if not .IsHome }}
+        {{ if .BreadCrumb }}
+          <ul class="breadcrumb">
+            {{ range .BreadCrumb }}
+              <li><a href="{{ asset .link }}">{{ .text }}</a></li>
+            {{ end }}
+          </ul>
+        {{ end }}
       {{ end }}
 
       {{ if .Content }}
@@ -105,6 +126,7 @@
         {{ .Content }}
 
         {{ .ContentFooter }}
+
       {{ else }}
 
         {{ if .CurrentPage }}
@@ -120,6 +142,9 @@
         </ul>
 
       {{end}}
+
+      <p>{{ setting "page/body/copyright" | htmltext }}</p>
+
     </div>
 
   {{ if setting "page/body/scripts/footer" }}
