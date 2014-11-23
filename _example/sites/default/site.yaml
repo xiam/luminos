@@ -23,7 +23,7 @@ page:
 
     # Top navigation bar.
     menu:
-      - { text: "What's next?", url: "https://menteslibres.net/luminos/getting-started" }
+      - { text: "Getting started with Luminos", url: "https://menteslibres.net/luminos/getting-started" }
 
     # Top-right navigation helper.
     menu_pull:
