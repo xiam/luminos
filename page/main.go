@@ -1,25 +1,23 @@
-/*
-  Copyright (c) 2012-2013 José Carlos Nieto, http://xiam.menteslibres.org/
-
-  Permission is hereby granted, free of charge, to any person obtaining
-  a copy of this software and associated documentation files (the
-  "Software"), to deal in the Software without restriction, including
-  without limitation the rights to use, copy, modify, merge, publish,
-  distribute, sublicense, and/or sell copies of the Software, and to
-  permit persons to whom the Software is furnished to do so, subject to
-  the following conditions:
-
-  The above copyright notice and this permission notice shall be
-  included in all copies or substantial portions of the Software.
-
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+// Copyright (c) 2012-2014 José Carlos Nieto, https://menteslibres.net/xiam
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 package page
 
@@ -32,30 +30,35 @@ import (
 	"strings"
 )
 
-// This structure holds information on the current document served by Luminos.
+// Page struct holds information on the current document being served.
 type Page struct {
 
-	// Page title, guessed from the current document. (Looks for the first H1, H2, ..., H6 tag)
+	// Page's title, this is guessed from the current document. (Looks for the
+	// first H1, H2, ..., H6 tag)
 	Title string
 
 	// The HTML of the current document.
 	Content template.HTML
 
-	// The HTML of the _header.md or _header.html file on the current document's directory.
+	// The HTML of the _header.md or _header.html file on the current document's
+	// directory.
 	ContentHeader template.HTML
 
-	// The HTML of the _footer.md or _footer.html file on the current document's directory.
+	// The HTML of the _footer.md or _footer.html file on the current document's
+	// directory.
 	ContentFooter template.HTML
 
-	// An array of maps that contains names and links of all the items on the document root.
-	// Names begginning with "." or "_" are ignored in this list.
+	// An array of maps that contains names and links of all the items on the
+	// document root.  Names begginning with "." or "_" are ignored in this list.
 	Menu []map[string]interface{}
 
-	// An array of maps that contains names and links of all the items on the current document's directory.
-	// Names begginning with "." or "_" are ignored in this list.
+	// An array of maps that contains names and links of all the items on the
+	// current document's directory.  Names begginning with "." or "_" are
+	// ignored in this list.
 	SideMenu []map[string]interface{}
 
-	// An array of maps that contains names and links of the current document's path.
+	// An array of maps that contains names and links of the current document's
+	// path.
 	BreadCrumb []map[string]interface{}
 
 	// A map that contains name and link of the current page.
@@ -77,9 +80,10 @@ type Page struct {
 	IsHome bool
 }
 
+// List of extensions to look for. Elements on the left have precedence.
 var extensions = []string{".html", ".md", ""}
 
-// Just a list of files that can be sorted.
+// fileList struct is a sorted list of files.
 type fileList []os.FileInfo
 
 func (f fileList) Len() int {
@@ -97,10 +101,10 @@ func (f fileList) Swap(i, j int) {
 type byName struct{ fileList }
 
 const (
-	PS = string(os.PathSeparator)
+	pathSeparator = string(os.PathSeparator)
 )
 
-// Strips out known extensions for a given file name.
+// removeKnownExtension strips out known extensions from a given file name.
 func removeKnownExtension(s string) string {
 	fileExt := path.Ext(s)
 
@@ -115,35 +119,40 @@ func removeKnownExtension(s string) string {
 	return s
 }
 
-// Returns files in a directory passed through a filter.
+// filterList returns files in a directory passed through a filter.
 func filterList(directory string, filter func(os.FileInfo) bool) fileList {
 	var list fileList
+	var err error
 
-	fp, err := os.Open(directory)
+	// Attempt to open directory.
+	var fp *os.File
+	if fp, err = os.Open(directory); err != nil {
+		panic(err)
+	}
+
 	defer fp.Close()
 
-	if err != nil {
+	// Listing directory contents.
+	var dirContents []os.FileInfo
+	if dirContents, err = fp.Readdir(-1); err != nil {
 		panic(err)
 	}
 
-	ls, err := fp.Readdir(-1)
-
-	if err != nil {
-		panic(err)
-	}
-
-	for _, file := range ls {
+	// Looping over directory contents.
+	for _, file := range dirContents {
 		if filter(file) == true {
 			list = append(list, file)
 		}
 	}
 
+	// Sorting file list.
 	sort.Sort(byName{list})
 
 	return list
 }
 
-// A filter for filterList. Returns all except for those that begin with "." or "_".
+// dummyFilter is a filter for filterList. Returns all files except for those
+// that begin with "." or "_".
 func dummyFilter(f os.FileInfo) bool {
 	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
 		return true
@@ -151,7 +160,8 @@ func dummyFilter(f os.FileInfo) bool {
 	return false
 }
 
-// A filter for filterList. Returns all directories except those that begin with "." or "_".
+// directoryFilter is a filter for filterList. Returns all directories except
+// those that begin with "." or "_".
 func directoryFilter(f os.FileInfo) bool {
 	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
 		return f.IsDir()
@@ -159,7 +169,8 @@ func directoryFilter(f os.FileInfo) bool {
 	return false
 }
 
-// A filter for filterList. Returns all files except for those that begin with "." or "_".
+// fileFilter is a filter for filterList. Returns all files except for those
+// that begin with "." or "_".
 func fileFilter(f os.FileInfo) bool {
 	if strings.HasPrefix(f.Name(), ".") == false && strings.HasPrefix(f.Name(), "_") == false {
 		return (f.IsDir() == false)
@@ -167,7 +178,7 @@ func fileFilter(f os.FileInfo) bool {
 	return false
 }
 
-// Returns a stylized human title, given a file name.
+// createTitle returns a stylized human title, given a file name.
 func createTitle(s string) string {
 	s = removeKnownExtension(s)
 
@@ -177,7 +188,7 @@ func createTitle(s string) string {
 	return strings.Title(s[:1]) + s[1:]
 }
 
-// Returns a link.
+// CreateLink returns a link to another page.
 func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{} {
 	item := map[string]interface{}{}
 
@@ -192,6 +203,7 @@ func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{
 	return item
 }
 
+// CreateMenu scans files and directories and creates a menu.
 func (p *Page) CreateMenu() {
 	var item map[string]interface{}
 	p.Menu = []map[string]interface{}{}
@@ -200,7 +212,7 @@ func (p *Page) CreateMenu() {
 
 	for _, file := range files {
 		item = p.CreateLink(file, p.BasePath)
-		children := filterList(p.FileDir+PS+file.Name(), directoryFilter)
+		children := filterList(p.FileDir+pathSeparator+file.Name(), directoryFilter)
 		if len(children) > 0 {
 			item["children"] = []map[string]interface{}{}
 			for _, child := range children {
@@ -212,7 +224,7 @@ func (p *Page) CreateMenu() {
 	}
 }
 
-// Populates Page.BreadCrumb with links.
+// CreateBreadCrumb populates Page.BreadCrumb with links.
 func (p *Page) CreateBreadCrumb() {
 
 	p.BreadCrumb = []map[string]interface{}{
@@ -231,7 +243,7 @@ func (p *Page) CreateBreadCrumb() {
 			item := map[string]interface{}{}
 			item["link"] = prefix + "/" + chunk + "/"
 			item["text"] = createTitle(chunk)
-			prefix = prefix + PS + chunk
+			prefix = prefix + pathSeparator + chunk
 			p.BreadCrumb = append(p.BreadCrumb, item)
 			p.CurrentPage = item
 		}
@@ -239,7 +251,8 @@ func (p *Page) CreateBreadCrumb() {
 
 }
 
-// Populates Page.SideMenu with files on the current document's directory.
+// CreateSideMenu populates Page.SideMenu with files on the current document's
+// directory.
 func (p *Page) CreateSideMenu() {
 	var item map[string]interface{}
 	p.SideMenu = []map[string]interface{}{}
