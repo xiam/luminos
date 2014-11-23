@@ -26,13 +26,14 @@ import (
 	"fmt"
 	//"github.com/howeyc/fsnotify"
 	"log"
-	"menteslibres.net/gosexy/cli"
-	"menteslibres.net/gosexy/to"
-	"menteslibres.net/gosexy/yaml"
 	"net"
 	"net/http"
 	"net/http/fcgi"
 	"os"
+
+	"menteslibres.net/gosexy/cli"
+	"menteslibres.net/gosexy/to"
+	"menteslibres.net/gosexy/yaml"
 )
 
 // Default values

@@ -26,13 +26,14 @@ import (
 	"fmt"
 	//"github.com/howeyc/fsnotify"
 	"log"
+	"net/http"
+	"os"
+	"strings"
+
 	"menteslibres.net/gosexy/to"
 	"menteslibres.net/gosexy/yaml"
 	"menteslibres.net/luminos/host"
 	"menteslibres.net/luminos/watcher"
-	"net/http"
-	"os"
-	"strings"
 )
 
 // Map of hosts.

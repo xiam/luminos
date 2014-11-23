@@ -24,8 +24,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"menteslibres.net/gosexy/cli"
 	"os"
+
+	"menteslibres.net/gosexy/cli"
 )
 
 // initCommand is the structure that provides instructions for the "luminos

@@ -24,19 +24,20 @@ package host
 import (
 	"fmt"
 	//"github.com/howeyc/fsnotify"
-	md "github.com/russross/blackfriday"
 	"html/template"
 	"log"
-	"menteslibres.net/gosexy/to"
-	"menteslibres.net/gosexy/yaml"
-	"menteslibres.net/luminos/page"
-	"menteslibres.net/luminos/watcher"
 	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strings"
 	"time"
+
+	md "github.com/russross/blackfriday"
+	"menteslibres.net/gosexy/to"
+	"menteslibres.net/gosexy/yaml"
+	"menteslibres.net/luminos/page"
+	"menteslibres.net/luminos/watcher"
 )
 
 const (

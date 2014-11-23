@@ -23,8 +23,9 @@ package main
 
 import (
 	"log"
-	"menteslibres.net/gosexy/cli"
 	"os"
+
+	"menteslibres.net/gosexy/cli"
 )
 
 // Handy path separator.
