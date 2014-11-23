@@ -21,12 +21,10 @@
       {{ end }}
     </title>
 
-
     <!-- CSS -->
     <link rel="stylesheet" href="{{ asset "/css/poole.css" }}">
     <link rel="stylesheet" href="{{ asset "/css/syntax.css" }}">
     <link rel="stylesheet" href="{{ asset "/css/hyde.css" }}">
-    <link rel="stylesheet" href="{{ asset "/css/luminos.css" }}">
 
     <!-- External fonts -->
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
@@ -36,13 +34,21 @@
     <link rel="apple-touch-icon-precomposed" sizes="144x144" href="{{ asset "/apple-touch-icon-precomposed.png" }}">
     <link rel="shortcut icon" href="{{ asset "/favicon.ico"}}">
 
+    <!-- Code highlighting -->
+    <link rel="stylesheet" href="//menteslibres.net/static/highlightjs/styles/default.css?v0000">
+    <script src="//menteslibres.net/static/highlightjs/highlight.pack.js?v0000"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+
+    <!-- Luminos styles -->
+    <link rel="stylesheet" href="{{ asset "/css/luminos.css" }}">
+
   </head>
 
   <body>
 
     <!-- sidebar -->
     <div class="sidebar">
-      <div class="container sidebar-sticky">
+      <div class="container">
         <div class="sidebar-about">
           <h1>
             <a href="{{ asset "/" }}">
@@ -50,32 +56,32 @@
             </a>
           </h1>
           <p class="lead">{{ setting "page/body/title" }}</p>
-        </div>
-
-        <nav class="sidebar-nav">
-          <a class="sidebar-nav-item active" href="{{ asset "/" }}">Home</a>
-
-          {{ if settings "page/body/menu" }}
-            {{ range settings "page/body/menu" }}
-              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
-            {{ end }}
-          {{ end }}
 
           {{ if settings "page/body/menu_pull" }}
             {{ range settings "page/body/menu_pull" }}
-              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+              <small><a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a></small>
             {{ end }}
           {{ end }}
+        </div>
+
+        <nav class="sidebar-nav">
 
           {{ if .SideMenu }}
+            <ul>
             {{ range .SideMenu }}
-              <a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a>
+              <li><a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a></li>
+            {{ end }}
+            </ul>
+            <hr />
+          {{ end }}
+
+          {{ if settings "page/body/menu" }}
+            {{ range settings "page/body/menu" }}
+              <small><a class="sidebar-nav-item" href="{{ .url }}">{{ .text }}</a></small>
             {{ end }}
           {{ end }}
 
-          <a class="sidebar-nav-item" href="https://menteslibres.net/luminos/download">Download</a>
-          <a class="sidebar-nav-item" href="https://github.com/xiam/luminos">GitHub project</a>
-          <span class="sidebar-nav-item">Currently v0.9</span>
+
         </nav>
 
         <p>&copy; 2014. Some rights reserved.</p>
@@ -83,7 +89,17 @@
     </div>
 
     <div class="content container">
+
+     {{ if .BreadCrumb }}
+        <ul class="breadcrumb menu">
+          {{ range .BreadCrumb }}
+            <li><a href="{{ asset .link }}">{{ .text }}</a> <span class="divider">/</span></li>
+          {{ end }}
+        </ul>
+      {{ end }}
+
       {{ if .Content }}
+
         {{ .ContentHeader }}
 
         {{ .Content }}

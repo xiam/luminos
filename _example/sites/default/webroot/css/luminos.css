@@ -1,3 +1,6 @@
 code {
   font-family: 'Source Code Pro';
 }
+.hljs {
+  background: none;
+}
