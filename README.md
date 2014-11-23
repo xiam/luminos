@@ -35,15 +35,22 @@ Available commands for luminos:
 Use "luminos help <command>" to view more information about a command.
 ```
 
-Use `luminos init` to create an example project and `luminos run` to serve it.
+Use `luminos init` to create an empty site:
 
 ```sh
-mkdir -p ~/projects/
-cd ~/projects/
-luminos init luminos-example-project
-cd luminos-example-project
+cd ~/projects
+luminos init test-site
+```
+
+then you can ask `luminos run` to serve it:
+
+```sh
+cd test-site
 luminos run
 ```
+
+If you want to use Luminos with Apache or NGINX see the [Getting
+started](https://menteslibres.net/luminos/getting-started) page.
 
 ## Documentation
 
