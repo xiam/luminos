@@ -129,7 +129,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 
 		info, err := os.Stat(path)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to validate host %s: %s.", name, err.Error())
+			return nil, fmt.Errorf("Failed to validate host %s: %q.", name, err)
 		}
 		if info.IsDir() == false {
 			return nil, fmt.Errorf("Host %s does not point to a directory.", name)
@@ -138,7 +138,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 		h[name], err = host.New(name, path)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failed to initialize host %s: %s.", name, err.Error())
+			return nil, fmt.Errorf("Failed to initialize host %s: %q.", name, err)
 		}
 	}
 
@@ -180,7 +180,7 @@ func settingsWatcher() error {
 							log.Printf("Trying to reload settings file %s...\n", ev.Name)
 							y, err := loadSettings(ev.Name)
 							if err != nil {
-								log.Printf("Error loading settings file %s: %s\n", ev.Name, err.Error())
+								log.Printf("Error loading settings file %s: %q\n", ev.Name, err)
 							} else {
 								settings = y
 							}
@@ -189,7 +189,7 @@ func settingsWatcher() error {
 							watcher.Watch(ev.Name)
 						}
 					case err := <-watcher.Error:
-						log.Printf("Watcher error: %s\n", err.Error())
+						log.Printf("Watcher error: %q\n", err)
 					}
 				}
 			}()
@@ -210,7 +210,7 @@ func settingsWatcher() error {
 					if ev.IsModify() {
 						y, err := loadSettings(ev.Name)
 						if err != nil {
-							log.Printf("Error loading settings file %s: %s\n", ev.Name, err.Error())
+							log.Printf("Error loading settings file %s: %q\n", ev.Name, err)
 						} else {
 							log.Printf("Reloading settings file %s.\n", ev.Name)
 							settings = y

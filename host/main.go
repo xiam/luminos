@@ -46,6 +46,7 @@ const (
 )
 
 var (
+	// Used to guess when dealing with an external URL.
 	isExternalLinkPattern = regexp.MustCompile(`^[a-zA-Z0-9]+:\/\/`)
 )
 
@@ -188,28 +189,39 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 // readFile opens a file and reads its contents, if the file has the .md
 // extension the contents are parsed and HTML is returned.
 func (host *Host) readFile(file string) ([]byte, error) {
-	stat, err := os.Stat(file)
+	var stat os.FileInfo
+	var err error
 
-	if err != nil {
+	// This file must exists.
+	if stat, err = os.Stat(file); err != nil {
 		return nil, err
 	}
 
+	// File must not be a directory.
 	if stat.IsDir() == false {
 
-		fp, _ := os.Open(file)
-		defer fp.Close()
+		// Opening file.
+		var fp *os.File
 
-		buf := make([]byte, stat.Size())
-
-		_, err := fp.Read(buf)
-
-		if err != nil {
+		if fp, err = os.Open(file); err != nil {
 			return nil, err
 		}
 
+		defer fp.Close()
+
+		// Let's allocate a buffer that will contain the file contents.
+		buf := make([]byte, stat.Size())
+
+		// Let's read file contents.
+		if _, err = fp.Read(buf); err != nil {
+			return nil, err
+		}
+
+		// Parsing markdown.
 		if strings.HasSuffix(file, ".md") {
 			return md.MarkdownCommon(buf), nil
 		}
+
 		return buf, nil
 
 	}
@@ -224,7 +236,7 @@ func chunk(value string) string {
 	return value
 }
 
-// A simple ServeHTTP.
+// ServeHTTP reads a request and creates an appropriate response.
 func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	var localFile string
@@ -235,8 +247,10 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// per-request context would be useful.
 	host.Request = req
 
-	// Default status.
+	// Settings default status as not found.
 	status := http.StatusNotFound
+
+	// Default size is no size (-1).
 	size := -1
 
 	// Requested path
@@ -245,6 +259,8 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Stripping path
 	index := len(host.Path)
 
+	// If the hosts contains a path and the request begins with the same path, it
+	// is ignored for the matches.
 	if reqpath[0:index] == host.Path {
 		reqpath = reqpath[index:]
 	}
@@ -258,8 +274,10 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		webrootdir = "webroot"
 	}
 
+	// Absolute local webroot.
 	webroot := host.DocumentRoot + pathSeparator + webrootdir
 
+	// Attempt to match a request with a file in webroot/.
 	localFile = webroot + pathSeparator + reqpath
 
 	stat, err := os.Stat(localFile)
@@ -268,31 +286,36 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// File exists
 		if stat.IsDir() == false {
 			// Exists and it's not a directory, let's serve it.
-			status = http.StatusOK
+			status = http.StatusOK // Changing status.
 			http.ServeFile(w, req, localFile)
 			size = int(stat.Size())
 		}
 	}
 
+	// Was the status already changed?
 	if status == http.StatusNotFound {
 
+		// Attemt to match the file with a document in the contents directory.
 		docrootdir := to.String(host.Settings.Get("document", "markdown"))
 
 		if docrootdir == "" {
 			docrootdir = "markdown"
 		}
 
+		// Absolute document root.
 		docroot := host.DocumentRoot + pathSeparator + docrootdir
 
+		// Defining a filename to look for.
 		testFile := docroot + pathSeparator + reqpath
 
-		stat, err = os.Stat(testFile)
+		//stat, err = os.Stat(testFile)
 
 		localFile, stat = guessFile(testFile, true)
 
 		if stat != nil {
 
 			if reqpath != "" {
+				// Let's not accept paths ending in "/".
 				if stat.IsDir() == false {
 					if strings.HasSuffix(req.URL.Path, "/") == true {
 						http.Redirect(w, req, "/"+host.Path+"/"+reqpath, 301)
@@ -308,6 +331,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
+			// Creating a page.
 			p := &page.Page{}
 
 			p.FilePath = localFile
@@ -323,6 +347,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				p.BasePath = relPath
 			}
 
+			// Reading contents.
 			content, err := host.readFile(localFile)
 
 			if err == nil {
@@ -356,6 +381,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
+			// Looking for title.
 			if p.Content != "" {
 				title, _ := regexp.Compile(`<h[\d]>(.+)</h`)
 				found := title.FindStringSubmatch(string(p.Content))
@@ -364,17 +390,17 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
+			// Building menus.
 			p.CreateBreadCrumb()
 			p.CreateMenu()
 			p.CreateSideMenu()
 
-			err = host.Templates["index.tpl"].Execute(w, p)
-
-			if err == nil {
-				status = http.StatusOK
-			} else {
+			// Applying template.
+			if err = host.Templates["index.tpl"].Execute(w, p); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				status = http.StatusInternalServerError
+			} else {
+				status = http.StatusOK
 			}
 
 		}
@@ -384,7 +410,8 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Not found", http.StatusNotFound)
 	}
 
-	fmt.Println(strings.Join([]string{
+	// Log line.
+	logLine := []string{
 		chunk(req.RemoteAddr),
 		chunk(""),
 		chunk(""),
@@ -392,20 +419,19 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		chunk("\"" + fmt.Sprintf("%s %s %s", req.Method, req.RequestURI, req.Proto) + "\""),
 		chunk(fmt.Sprintf("%d", status)),
 		chunk(fmt.Sprintf("%d", size)),
-	},
-		" "),
-	)
+	}
+
+	fmt.Println(strings.Join(logLine, " "))
 }
 
 func (host *Host) loadTemplate(file string) error {
+	var err error
 
 	name := path.Base(file)
 
 	parsed := template.New(name)
 
-	parsed, err := parsed.Funcs(host.funcMap).ParseFiles(file)
-
-	if err != nil {
+	if parsed, err = parsed.Funcs(host.funcMap).ParseFiles(file); err != nil {
 		return err
 	}
 
@@ -422,6 +448,8 @@ func (host *Host) loadTemplate(file string) error {
 // loadTemplates loads templates with .tpl extension from the templates
 // directory. At this moment only index.tpl is expected.
 func (host *Host) loadTemplates() error {
+	var err error
+	var fp *os.File
 
 	tpldir := to.String(host.Settings.Get("document", "templates"))
 
@@ -431,20 +459,17 @@ func (host *Host) loadTemplates() error {
 
 	tplroot := host.DocumentRoot + pathSeparator + tpldir
 
-	fp, err := os.Open(tplroot)
-
-	if err != nil {
-		return fmt.Errorf("Error trying to open %s: %s", tplroot, err.Error())
+	if fp, err = os.Open(tplroot); err != nil {
+		return fmt.Errorf("Error trying to open %s: %q", tplroot, err)
 	}
-
-	host.TemplateRoot = tplroot
 
 	defer fp.Close()
 
-	files, err := fp.Readdir(-1)
+	host.TemplateRoot = tplroot
 
-	if err != nil {
-		return fmt.Errorf("Error reading directory %s: %s", tplroot, err.Error())
+	var files []os.FileInfo
+	if files, err = fp.Readdir(-1); err != nil {
+		return fmt.Errorf("Error reading directory %s: %q", tplroot, err)
 	}
 
 	for _, fp := range files {
@@ -456,7 +481,7 @@ func (host *Host) loadTemplates() error {
 			err := host.loadTemplate(file)
 
 			if err != nil {
-				log.Printf("%s: Template error in file %s: %s\n", host.Name, file, err.Error())
+				log.Printf("%s: Template error in file %s: %q\n", host.Name, file, err)
 			}
 
 		}
@@ -513,7 +538,7 @@ func (host *Host) fileWatcher() error {
 									host.loadTemplate(ev.Name)
 
 									if err != nil {
-										log.Printf("%s: Could not reload template %s: %s", host.Name, ev.Name, err.Error())
+										log.Printf("%s: Could not reload template %s: %q", host.Name, ev.Name, err)
 									}
 
 								}
@@ -561,7 +586,7 @@ func (host *Host) fileWatcher() error {
 								log.Printf("%s: Reloading template %s", host.Name, ev.Name)
 								host.loadTemplate(ev.Name)
 								if err != nil {
-									log.Printf("%s: Could not reload template %s: %s", host.Name, ev.Name, err.Error())
+									log.Printf("%s: Could not reload template %s: %q", host.Name, ev.Name, err)
 								}
 							}
 						}
@@ -587,10 +612,10 @@ func (host *Host) loadSettings() error {
 	if err == nil {
 		settings, err = yaml.Open(file)
 		if err != nil {
-			return fmt.Errorf(`Could not parse settings file (%s): %s`, file, err.Error())
+			return fmt.Errorf(`Could not parse settings file (%s): %q`, file, err)
 		}
 	} else {
-		return fmt.Errorf(`Error trying to open settings file (%s): %s.`, file, err.Error())
+		return fmt.Errorf(`Error trying to open settings file (%s): %q.`, file, err)
 	}
 
 	if host.Watcher != nil {
@@ -662,7 +687,7 @@ func New(name string, root string) (*Host, error) {
 
 	}
 
-	log.Printf("Error reading directory %s: %s\n", root, err.Error())
+	log.Printf("Error reading directory %s: %q\n", root, err)
 	log.Printf("Checkout an example directory at https://github.com/xiam/luminos/tree/master/default\n")
 
 	return nil, err

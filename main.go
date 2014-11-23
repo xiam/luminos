@@ -51,7 +51,7 @@ func main() {
 	err = cli.Dispatch()
 
 	if err != nil {
-		log.Fatalf("Could not start Luminos: %s\n", err.Error())
+		log.Fatalf("Could not start Luminos: %q\n", err)
 	}
 
 }
