@@ -182,7 +182,7 @@ func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{
 	item := map[string]interface{}{}
 
 	if file.IsDir() == true {
-		item["link"] = prefix + file.Name() + "/"
+		item["link"] = prefix + file.Name()
 	} else {
 		item["link"] = prefix + removeKnownExtension(file.Name())
 	}
@@ -204,7 +204,7 @@ func (p *Page) CreateMenu() {
 		if len(children) > 0 {
 			item["children"] = []map[string]interface{}{}
 			for _, child := range children {
-				childItem := p.CreateLink(child, p.BasePath+file.Name()+"/")
+				childItem := p.CreateLink(child, p.BasePath+file.Name())
 				item["children"] = append(item["children"].([]map[string]interface{}), childItem)
 			}
 		}
@@ -229,7 +229,7 @@ func (p *Page) CreateBreadCrumb() {
 	for _, chunk := range chunks {
 		if chunk != "" {
 			item := map[string]interface{}{}
-			item["link"] = prefix + "/" + chunk + "/"
+			item["link"] = prefix + "/" + chunk
 			item["text"] = createTitle(chunk)
 			prefix = prefix + PS + chunk
 			p.BreadCrumb = append(p.BreadCrumb, item)
