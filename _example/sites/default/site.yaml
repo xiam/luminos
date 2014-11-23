@@ -14,17 +14,16 @@ page:
   # Some properties for <head>.
   head:
     # Title that appears on the <title> tag.
-    title: "My Luminos site"
+    title: "Luminos markdown server."
 
   # Some properties for <body>.
   body:
-    # Title that appears on the <h1> tag.
-    title: "A new Luminos project"
+    # Page subtitle.
+    title: "Markdown server"
 
     # Top navigation bar.
     menu:
-      - { text: "Documentation", url: "http://luminos.menteslibres.org/getting-started" }
-      - { text: "Source code", url: "https://github.com/xiam/luminos" }
+      - { text: "What's next?", url: "https://menteslibres.net/luminos/getting-started" }
 
     # Top-right navigation helper.
     menu_pull:
