@@ -14,7 +14,7 @@ page:
   # Some properties for <head>.
   head:
     # Title that appears on the <title> tag.
-    title: "Oh, hello!"
+    title: "My Luminos site"
 
   # Some properties for <body>.
   body:

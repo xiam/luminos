@@ -1,82 +1,70 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
   <head>
+    <link href="http://gmpg.org/xfn/11" rel="profile">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
 
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!-- Enable responsiveness on mobile devices-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 
-    <link href="//fonts.googleapis.com/css?family=PT+Serif" rel="stylesheet" type="text/css">
-    <link href="//fonts.googleapis.com/css?family=PT+Sans" rel="stylesheet" type="text/css">
+    <title>
+      {{ if .IsHome }}
+        {{ setting "page/head/title" }}
+      {{ else }}
+        {{ if .Title }}
+          {{ .Title }} {{ if setting "page/head/title" }} &middot; {{ setting "page/head/title" }} {{ end }}
+        {{ else }}
+          {{ setting "page/head/title" }}
+        {{ end }}
+      {{ end }}
+    </title>
+
     <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
 
-    {{ if .IsHome }}
-        <title>{{ setting "page/head/title" }}</title>
-    {{ else }}
-      {{ if .Title }}
-        <title>
-          {{ .Title }} {{ if setting "page/head/title" }} // {{ setting "page/head/title" }} {{ end }}</title>
-      {{ else }}
-        <title>{{ setting "page/head/title" }}</title>
-      {{ end }}
-    {{ end }}
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ asset "/css/poole.css" }}">
+    <link rel="stylesheet" href="{{ asset "/css/syntax.css" }}">
 
-		<link rel="shortcut icon" href="{{ asset "/favicon.ico" }}" />
+    <!-- Icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="{{ asset "/apple-touch-icon-precomposed.png" }}">
+    <link rel="shortcut icon" href="{{ asset "/favicon.ico"}}">
 
-		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-
-    <link rel="stylesheet" href="//menteslibres.net/static/normalize/normalize.css" />
-
-    <link rel="stylesheet" href="//menteslibres.net/static/bootstrap/css/bootstrap.css" />
-
-    <link rel="stylesheet" href="//menteslibres.net/static/highlightjs/styles/solarized_dark.css">
-    <script src="//menteslibres.net/static/highlightjs/highlight.pack.js"></script>
-
-    <link rel="stylesheet" href="{{ asset "/css/styles.css" }}" />
-
-    <script type="text/javascript" src="{{ asset "/js/main.js" }}"></script>
-
-		<style type="text/css">
-			body {
-				font-family: 'PT Sans';
-				font-size: large;
-			}
-			code {
-				font-family: 'Source Code Pro';
-			}
-		</style>
+    <style type="text/css">
+      code {
+        font-family: 'Source Code Pro';
+      }
+    </style>
 
   </head>
 
   <body>
 
-    <div class="container" id="container">
-    <div class="navbar navbar-fixed-top">
-      <div class="navbar-inner">
-        <div class="container">
+    <div class="container content">
+      <header class="masthead">
+        <h3 class="masthead-title">
+          <a href="{{ asset "/" }}" title="Home">{{ setting "page/body/title" }}</a>
+          <small>{{ setting "page/brand" }}</small>
+        </h3>
+      </header>
 
-          <a class="brand" href="{{ asset "/" }}">{{ setting "page/brand" }}</a>
+      <main>
 
-          <div class="nav-collapse">
-            {{ if settings "page/body/menu" }}
-              <ul id="nav" class="nav menu">
-                {{ range settings "page/body/menu" }}
-                  <li>{{ link .url .text }}</li>
-                {{ end }}
-              </ul>
-            {{ end }}
-            {{ if settings "page/body/menu_pull" }}
-              <ul id="nav" class="nav pull-right menu">
-                {{ range settings "page/body/menu_pull" }}
-                  <li>{{ link .url .text }}</li>
-                {{ end }}
-              </ul>
-            {{ end }}
-          </div>
-
-        </div>
-      </div>
-    </div>
+    {{ if settings "page/body/menu" }}
+      <ul id="nav" class="nav menu">
+        {{ range settings "page/body/menu" }}
+          <li>{{ link .url .text }}</li>
+        {{ end }}
+      </ul>
+    {{ end }}
+    {{ if settings "page/body/menu_pull" }}
+      <ul id="nav" class="nav pull-right menu">
+        {{ range settings "page/body/menu_pull" }}
+          <li>{{ link .url .text }}</li>
+        {{ end }}
+      </ul>
+    {{ end }}
 
     {{ if .IsHome }}
 
@@ -167,11 +155,15 @@
 
     {{ end }}
 
-    <hr />
 
-    <footer>
-      Powered by <a href="https://menteslibres.net/luminos" target="_blank">Luminos</a>
-    </footer>
+      </main>
+
+      <footer class="footer">
+        <small>
+          &copy; 2014. {{ setting "page/brand" }}
+        </small>
+      </footer>
+    </div>
 
     {{ if setting "page/body/scripts/footer" }}
       <script type="text/javascript">
@@ -181,3 +173,5 @@
 
   </body>
 </html>
+
+
