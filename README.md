@@ -1,7 +1,7 @@
 # Luminos, markdown server
 
-[Luminos][5] is a tiny HTTP/FastCGI server written in [Go][2] that transforms
-[markdown][3] files into HTML on the fly. It plays well with NGINX and Apache2.
+[Luminos][5] is a tiny HTTP/FastCGI server written in [Go][2] that converts
+[markdown][3] files into HTML on the fly.
 
 ## Getting Luminos
 
