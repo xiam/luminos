@@ -251,6 +251,6 @@ code {
 a img {
   border: none;
 }
-h1 {
+.sidebar-about h1 {
   margin-top: 0px;
 }
