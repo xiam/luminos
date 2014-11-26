@@ -88,6 +88,8 @@ var extensions = []string{
 // fixDeprecatedSyntax fixes old template syntax.
 func fixDeprecatedSyntax(s string) string {
 
+	s = strings.Replace(s, "{{ link", "{{ anchor", -1)
+	s = strings.Replace(s, "{{link", "{{anchor", -1)
 	s = strings.Replace(s, ".link", ".URL", -1)
 	s = strings.Replace(s, ".url", ".URL", -1)
 	s = strings.Replace(s, ".text", ".Text", -1)
@@ -195,6 +197,14 @@ func javascriptText(text string) template.JS {
 // htmlText is a function for funcMap that writes text as plain HTML.
 func htmlText(text string) template.HTML {
 	return template.HTML(text)
+}
+
+// Function for funcMap that writes links.
+func (host *Host) anchor(url, text string) template.HTML {
+	if host.isExternalLink(url) {
+		return template.HTML(fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, host.asset(url), text))
+	}
+	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, host.asset(url), text))
 }
 
 // guessFile checks for files names and returns a guessed name.
@@ -680,6 +690,7 @@ func New(name string, root string) (*Host, error) {
 
 		host.funcMap = template.FuncMap{
 			"url":      func(s string) string { return host.url(s) },
+			"anchor":   func(a, b string) template.HTML { return host.anchor(a, b) },
 			"asset":    func(s string) string { return host.asset(s) },
 			"setting":  func(s string) interface{} { return host.setting(s) },
 			"settings": func(s string) []interface{} { return host.settings(s) },
