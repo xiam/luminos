@@ -62,6 +62,16 @@
         {{ end }}
 
         <div class="sidebar-about">
+          <div class="logo">
+            <a href="/">
+              <!--
+              Icon made by OCHA (http://www.unocha.org) from www.flaticon.com
+              is licensed under CC BY 3.0
+              (http://creativecommons.org/licenses/by/3.0/)
+              -->
+              <img src="{{ asset "/images/logo.svg" }}" width="128" height="128" />
+            </a>
+          </div>
           <h1>
             <a href="{{ asset "/" }}">
               {{ setting "page/brand" }}

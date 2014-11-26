@@ -239,3 +239,18 @@ code {
   border: 1px solid #333;
   border-bottom-color: transparent;
 }
+
+.logo {
+  text-align: center;
+  padding-top: 1rem;
+}
+.logo img {
+  display: inline;
+  margin: 0px;
+}
+a img {
+  border: none;
+}
+h1 {
+  margin-top: 0px;
+}
