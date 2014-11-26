@@ -151,7 +151,7 @@ func loadSettings(file string) (*yaml.Yaml, error) {
 	hosts = h
 
 	if _, ok := hosts["default"]; ok == false {
-		log.Printf("Warning: default host was not provided.")
+		log.Printf("Warning: default host was not provided.\n")
 	}
 
 	return y, nil

@@ -117,14 +117,14 @@ func (c *runCommand) Execute() (err error) {
 	switch serverType {
 	case "fastcgi":
 		if err == nil {
-			log.Printf("Starting FastCGI server. Listening at %s.", address)
+			log.Printf("Starting FastCGI server. Listening at %s.\n", address)
 			fcgi.Serve(listener, &server{})
 		} else {
 			return fmt.Errorf("Failed to start FastCGI server: %q", err)
 		}
 	case "standalone":
 		if err == nil {
-			log.Printf("Starting HTTP server. Listening at %s.", address)
+			log.Printf("Starting HTTP server. Listening at %s.\n", address)
 			http.Serve(listener, &server{})
 		} else {
 			return fmt.Errorf("Failed to start HTTP server: %q", err)

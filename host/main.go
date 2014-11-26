@@ -570,11 +570,11 @@ func (host *Host) fileWatcher() error {
 							if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
 
 								if strings.HasSuffix(ev.Name, ".tpl") == true {
-									log.Printf("%s: Reloading template %s", host.Name, ev.Name)
+									log.Printf("%s: Reloading template %s\n", host.Name, ev.Name)
 									host.loadTemplate(ev.Name)
 
 									if err != nil {
-										log.Printf("%s: Could not reload template %s: %q", host.Name, ev.Name, err)
+										log.Printf("%s: Could not reload template %s: %q\n", host.Name, ev.Name, err)
 									}
 
 								}
@@ -619,10 +619,10 @@ func (host *Host) fileWatcher() error {
 						// Is a template?
 						if strings.HasPrefix(ev.Name, host.TemplateRoot) == true {
 							if strings.HasSuffix(ev.Name, ".tpl") == true {
-								log.Printf("%s: Reloading template %s", host.Name, ev.Name)
+								log.Printf("%s: Reloading template %s\n", host.Name, ev.Name)
 								host.loadTemplate(ev.Name)
 								if err != nil {
-									log.Printf("%s: Could not reload template %s: %q", host.Name, ev.Name, err)
+									log.Printf("%s: Could not reload template %s: %q\n", host.Name, ev.Name, err)
 								}
 							}
 						}

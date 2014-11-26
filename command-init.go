@@ -88,9 +88,9 @@ func (c *initCommand) Execute() (err error) {
 
 	// All done! Let's tell the user we've finished.
 	if dest == "." {
-		fmt.Printf("New project created at the current directory.")
+		fmt.Printf("New project created at the current directory.\n")
 	} else {
-		fmt.Printf("New project created at %s.", dest)
+		fmt.Printf("New project created at %s.\n", dest)
 	}
 
 	return nil
