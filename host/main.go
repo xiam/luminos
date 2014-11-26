@@ -25,6 +25,7 @@ import (
 	"fmt"
 	//"github.com/howeyc/fsnotify"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -84,6 +85,30 @@ var extensions = []string{
 	".txt",
 }
 
+// fixDeprecatedSyntax fixes old template syntax.
+func fixDeprecatedSyntax(s string) string {
+
+	s = strings.Replace(s, ".link", ".URL", -1)
+	s = strings.Replace(s, ".url", ".URL", -1)
+	s = strings.Replace(s, ".text", ".Text", -1)
+	s = strings.Replace(s, "jstext", "js", -1)
+	s = strings.Replace(s, "htmltext", "html", -1)
+
+	return s
+}
+
+// readFile attempts to read a file from disk and returns its contents.
+func readFile(file string) (string, error) {
+	var buf []byte
+	var err error
+
+	if buf, err = ioutil.ReadFile(file); err != nil {
+		return "", err
+	}
+
+	return string(buf), nil
+}
+
 // Close removes the watcher that is currently associated with the host.
 func (host *Host) Close() {
 	host.Watcher.Close()
@@ -120,7 +145,25 @@ func (host *Host) setting(path string) interface{} {
 	for i := range route {
 		args[i] = route[i]
 	}
-	return host.Settings.Get(args...)
+	setting := host.Settings.Get(args...)
+	return fixSetting(setting)
+}
+
+// fixSetting returns additional keys to make certain maps act like anchors.
+func fixSetting(setting interface{}) interface{} {
+
+	if m, ok := setting.(map[interface{}]interface{}); ok {
+		for k, v := range m {
+			switch k {
+			case "text":
+				m["Text"] = v
+			case "link", "url":
+				m["URL"] = v
+			}
+		}
+	}
+
+	return setting
 }
 
 // settings is a function that returns an array of settings.
@@ -134,25 +177,24 @@ func (host *Host) settings(path string) []interface{} {
 	if val == nil {
 		return nil
 	}
-	return val.([]interface{})
+
+	ival := val.([]interface{})
+
+	for i := range ival {
+		ival[i] = fixSetting(ival[i])
+	}
+
+	return ival
 }
 
-// jstext is a function for funcMap that writes text as Javascript.
-func jstext(text string) template.JS {
+// javascriptText is a function for funcMap that writes text as Javascript.
+func javascriptText(text string) template.JS {
 	return template.JS(text)
 }
 
-// htmltext is a function for funcMap that writes text as plain HTML.
-func htmltext(text string) template.HTML {
+// htmlText is a function for funcMap that writes text as plain HTML.
+func htmlText(text string) template.HTML {
 	return template.HTML(text)
-}
-
-// links is a function for funcMap that writes links.
-func (host *Host) link(url, text string) template.HTML {
-	if host.isExternalLink(url) {
-		return template.HTML(fmt.Sprintf(`<a target="_blank" href="%s">%s</a>`, host.asset(url), text))
-	}
-	return template.HTML(fmt.Sprintf(`<a href="%s">%s</a>`, host.asset(url), text))
 }
 
 // guessFile checks for files names and returns a guessed name.
@@ -189,44 +231,19 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 // readFile opens a file and reads its contents, if the file has the .md
 // extension the contents are parsed and HTML is returned.
 func (host *Host) readFile(file string) ([]byte, error) {
-	var stat os.FileInfo
+
+	var buf []byte
 	var err error
 
-	// This file must exists.
-	if stat, err = os.Stat(file); err != nil {
+	if buf, err = ioutil.ReadFile(file); err != nil {
 		return nil, err
 	}
 
-	// File must not be a directory.
-	if stat.IsDir() == false {
-
-		// Opening file.
-		var fp *os.File
-
-		if fp, err = os.Open(file); err != nil {
-			return nil, err
-		}
-
-		defer fp.Close()
-
-		// Let's allocate a buffer that will contain the file contents.
-		buf := make([]byte, stat.Size())
-
-		// Let's read file contents.
-		if _, err = fp.Read(buf); err != nil {
-			return nil, err
-		}
-
-		// Parsing markdown.
-		if strings.HasSuffix(file, ".md") {
-			return md.MarkdownCommon(buf), nil
-		}
-
-		return buf, nil
-
+	if strings.HasSuffix(file, ".md") {
+		buf = md.MarkdownCommon(buf)
 	}
 
-	return nil, nil
+	return buf, nil
 }
 
 func chunk(value string) string {
@@ -427,11 +444,20 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (host *Host) loadTemplate(file string) error {
 	var err error
 
+	// Reading template file.
+	var text string
+	if text, err = readFile(file); err != nil {
+		return err
+	}
+
+	// Fixing template.
+	text = fixDeprecatedSyntax(text)
+
+	// Allocating name.
 	name := path.Base(file)
+	parsed := template.New(name).Funcs(host.funcMap)
 
-	parsed := template.New(name)
-
-	if parsed, err = parsed.Funcs(host.funcMap).ParseFiles(file); err != nil {
+	if _, err = parsed.Parse(text); err != nil {
 		return err
 	}
 
@@ -657,9 +683,8 @@ func New(name string, root string) (*Host, error) {
 			"asset":    func(s string) string { return host.asset(s) },
 			"setting":  func(s string) interface{} { return host.setting(s) },
 			"settings": func(s string) []interface{} { return host.settings(s) },
-			"jstext":   jstext,
-			"htmltext": htmltext,
-			"link":     func(a, b string) template.HTML { return host.link(a, b) },
+			"js":       javascriptText,
+			"html":     htmlText,
 		}
 
 		// Watcher

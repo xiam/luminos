@@ -87,6 +87,7 @@ func route(req *http.Request) *host.Host {
 	if _, ok := hosts[match]; !ok {
 		// Host was not found.
 		log.Printf("Request for unknown host: %s\n", req.Host)
+		return nil
 	}
 
 	return hosts[match]
@@ -99,6 +100,7 @@ func (s server) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.ServeHTTP(wri, req)
 	} else {
 		log.Printf("Failed to serve host %s.\n", req.Host)
+		http.Error(wri, "Not found", http.StatusNotFound)
 	}
 }
 

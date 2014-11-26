@@ -30,6 +30,14 @@ import (
 	"strings"
 )
 
+type anchor struct {
+	Text     string
+	URL      string
+	children []anchor
+}
+
+var homeAnchor = anchor{Text: "Home", URL: "/"}
+
 // Page struct holds information on the current document being served.
 type Page struct {
 
@@ -48,21 +56,22 @@ type Page struct {
 	// document's directory.
 	ContentFooter template.HTML
 
-	// An array of maps that contains names and links of all the items on the
-	// document root.  Names that begin with "." or "_" are ignored in this list.
-	Menu []map[string]interface{}
+	// An array that contains names and links of all the items on the document's
+	// root. Names that begin with a dot or an underscore are ignored from the
+	// listing.
+	Menu []anchor
 
-	// An array of maps that contains names and links of all the items on the
-	// current document's directory.  Names that begin with "." or "_" are
-	// ignored in this list.
-	SideMenu []map[string]interface{}
+	// An array that contains names and links of all the items on the current
+	// document's directory. Names that begin with a dot or an underscore are
+	// ignored from the listing.
+	SideMenu []anchor
 
-	// An array of maps that contains names and links of the current document's
+	// An array of anchors that contain names and URLs of the current document's
 	// path.
-	BreadCrumb []map[string]interface{}
+	BreadCrumb []anchor
 
-	// A map that contains the name and link of the current page.
-	CurrentPage map[string]interface{}
+	// Contains the name and URL of the current page.
+	CurrentPage anchor
 
 	// Absolute path of the current document.
 	FilePath string
@@ -184,26 +193,26 @@ func createTitle(s string) string {
 }
 
 // CreateLink returns a link to another page.
-func (p *Page) CreateLink(file os.FileInfo, prefix string) map[string]interface{} {
-	item := map[string]interface{}{}
+func (p *Page) CreateLink(file os.FileInfo, prefix string) anchor {
+	item := anchor{}
 
 	if file.IsDir() == true {
-		item["link"] = prefix + file.Name()
+		item.URL = prefix + file.Name()
 	} else {
-		item["link"] = prefix + removeKnownExtension(file.Name())
+		item.URL = prefix + removeKnownExtension(file.Name())
 	}
 
-	item["link"] = path.Clean(item["link"].(string))
+	item.URL = path.Clean(item.URL)
 
-	item["text"] = createTitle(file.Name())
+	item.Text = createTitle(file.Name())
 
 	return item
 }
 
 // CreateMenu scans files and directories and builds a list of children links.
 func (p *Page) CreateMenu() {
-	var item map[string]interface{}
-	p.Menu = []map[string]interface{}{}
+	var item anchor
+	p.Menu = []anchor{}
 
 	files := filterList(p.FileDir, directoryFilter)
 
@@ -211,10 +220,10 @@ func (p *Page) CreateMenu() {
 		item = p.CreateLink(file, p.BasePath)
 		children := filterList(p.FileDir+pathSeparator+file.Name(), directoryFilter)
 		if len(children) > 0 {
-			item["children"] = []map[string]interface{}{}
+			item.children = make([]anchor, 0, len(children))
 			for _, child := range children {
 				childItem := p.CreateLink(child, p.BasePath+file.Name())
-				item["children"] = append(item["children"].([]map[string]interface{}), childItem)
+				item.children = append(item.children, childItem)
 			}
 		}
 		p.Menu = append(p.Menu, item)
@@ -224,41 +233,42 @@ func (p *Page) CreateMenu() {
 // CreateBreadCrumb populates Page.BreadCrumb with links.
 func (p *Page) CreateBreadCrumb() {
 
-	p.BreadCrumb = []map[string]interface{}{
-		map[string]interface{}{
-			"link": "/",
-			"text": "Home",
-		},
-	}
-
 	chunks := strings.Split(strings.Trim(p.BasePath, "/"), "/")
+
+	p.BreadCrumb = make([]anchor, 0, len(chunks)+1)
+
+	p.BreadCrumb = append(p.BreadCrumb, homeAnchor)
 
 	prefix := ""
 
 	for _, chunk := range chunks {
 		if chunk != "" {
-			item := map[string]interface{}{}
-			item["link"] = prefix + "/" + chunk
-			item["text"] = createTitle(chunk)
+
+			item := anchor{
+				URL:  prefix + "/" + chunk,
+				Text: createTitle(chunk),
+			}
+
 			prefix = prefix + pathSeparator + chunk
 			p.BreadCrumb = append(p.BreadCrumb, item)
-			p.CurrentPage = item
 		}
 	}
 
+	p.CurrentPage = p.BreadCrumb[len(p.BreadCrumb)-1]
 }
 
 // CreateSideMenu populates Page.SideMenu with files on the current document's
 // directory.
 func (p *Page) CreateSideMenu() {
-	var item map[string]interface{}
-	p.SideMenu = []map[string]interface{}{}
+	var item anchor
 
 	files := filterList(p.FileDir, dummyFilter)
 
+	p.SideMenu = make([]anchor, 0, len(files))
+
 	for _, file := range files {
 		item = p.CreateLink(file, p.BasePath)
-		if strings.ToLower(item["text"].(string)) != "index" {
+		if strings.ToLower(item.Text) != "index" {
 			p.SideMenu = append(p.SideMenu, item)
 		}
 	}
@@ -274,7 +284,7 @@ func (p *Page) CreateSideMenu() {
 
 		for _, file := range files {
 			item = p.CreateLink(file, p.BasePath+".."+pathSeparator)
-			if strings.ToLower(item["text"].(string)) != "index" {
+			if strings.ToLower(item.Text) != "index" {
 				p.SideMenu = append(p.SideMenu, item)
 			}
 		}
