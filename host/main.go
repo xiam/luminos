@@ -34,7 +34,7 @@ import (
 	"strings"
 	"time"
 
-	md "github.com/russross/blackfriday"
+	"github.com/russross/blackfriday"
 	"menteslibres.net/gosexy/to"
 	"menteslibres.net/gosexy/yaml"
 	"menteslibres.net/luminos/page"
@@ -250,7 +250,7 @@ func (host *Host) readFile(file string) ([]byte, error) {
 	}
 
 	if strings.HasSuffix(file, ".md") {
-		buf = md.MarkdownCommon(buf)
+		buf = blackfriday.MarkdownCommon(buf)
 	}
 
 	return buf, nil
