@@ -394,7 +394,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
-			if p.BasePath == "/" {
+			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
 				p.IsHome = true
 			}
 
