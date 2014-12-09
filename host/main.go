@@ -24,6 +24,7 @@ package host
 import (
 	"fmt"
 	//"github.com/howeyc/fsnotify"
+	"errors"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -49,6 +50,7 @@ const (
 var (
 	// Used to guess when dealing with an external URL.
 	isExternalLinkPattern = regexp.MustCompile(`^[a-zA-Z0-9]+:\/\/`)
+	titlePattern          = regexp.MustCompile(`<h[\d]>(.+)</h`)
 )
 
 // Host is the struct that represents virtual hosts.
@@ -97,6 +99,29 @@ func fixDeprecatedSyntax(s string) string {
 	s = strings.Replace(s, "htmltext", "html", -1)
 
 	return s
+}
+
+func (host *Host) getContentPath() (string, error) {
+	var directories []string
+
+	contentdir := to.String(host.Settings.Get("content", "markdown"))
+	if contentdir == "" {
+		directories = []string{
+			"content",
+			"markdown",
+		}
+	} else {
+		directories = []string{contentdir}
+	}
+
+	for _, directory := range directories {
+		path := host.DocumentRoot + pathSeparator + directory
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", errors.New(`Content directory was not found.`)
 }
 
 // readFile attempts to read a file from disk and returns its contents.
@@ -295,7 +320,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	reqpath = strings.Trim(reqpath, "/")
 
 	// Trying to match a file on webroot/
-	webrootdir := to.String(host.Settings.Get("document", "webroot"))
+	webrootdir := to.String(host.Settings.Get("content", "webroot"))
 
 	if webrootdir == "" {
 		webrootdir = "webroot"
@@ -322,20 +347,15 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// Was the status already changed?
 	if status == http.StatusNotFound {
 
-		// Attemt to match the file with a document in the contents directory.
-		docrootdir := to.String(host.Settings.Get("document", "markdown"))
-
-		if docrootdir == "" {
-			docrootdir = "markdown"
-		}
-
 		// Absolute document root.
-		docroot := host.DocumentRoot + pathSeparator + docrootdir
+		var docroot string
+		if docroot, err = host.getContentPath(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		// Defining a filename to look for.
 		testFile := docroot + pathSeparator + reqpath
-
-		//stat, err = os.Stat(testFile)
 
 		localFile, stat = guessFile(testFile, true)
 
@@ -410,8 +430,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			// Looking for title.
 			if p.Content != "" {
-				title, _ := regexp.Compile(`<h[\d]>(.+)</h`)
-				found := title.FindStringSubmatch(string(p.Content))
+				found := titlePattern.FindStringSubmatch(string(p.Content))
 				if len(found) > 0 {
 					p.Title = found[1]
 				}
@@ -487,7 +506,7 @@ func (host *Host) loadTemplates() error {
 	var err error
 	var fp *os.File
 
-	tpldir := to.String(host.Settings.Get("document", "templates"))
+	tpldir := to.String(host.Settings.Get("content", "templates"))
 
 	if tpldir == "" {
 		tpldir = "templates"

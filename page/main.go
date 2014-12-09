@@ -38,6 +38,10 @@ type anchor struct {
 
 var homeAnchor = anchor{Text: "Home", URL: "/"}
 
+var (
+	titleReplacePattern = regexp.MustCompile(`[-_]`)
+)
+
 // Page struct holds information on the current document being served.
 type Page struct {
 
@@ -188,7 +192,7 @@ func fileFilter(f os.FileInfo) bool {
 // createTitle expects a filename and returns a stylized human title.
 func createTitle(s string) string {
 	s = removeKnownExtension(s)
-	s = regexp.MustCompile("[-_]").ReplaceAllString(s, " ")
+	s = titleReplacePattern.ReplaceAllString(s, " ")
 	return strings.Title(s[:1]) + s[1:]
 }
 

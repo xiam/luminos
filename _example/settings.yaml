@@ -1,43 +1,42 @@
 # Configuration file for Luminos.     https://menteslibres.net/luminos
 #
 #
-# You are viewing a YAML formatted file, read more about the format
-# at http://www.yaml.org.
+# You are viewing a YAML formatted file, read more about the format at
+# http://www.yaml.org.
 #
 # Note: Use two space indentations instead of the \t character.
 #
 
 # SERVER CONFIGURATION
-# Changing server settings requires restart.
+# Note: Changing server settings requires restarting luminos.
 server:
 
   # The IPv4 or IPv6 address to bind to.
   bind: "0.0.0.0"
 
-  # Port to use.
+  # Port to listen on.
   port: 9000
 
-  # Use "fastcgi" to start a FastCGI server or "standalone" to start
-  # a HTTP server instead.
+  # Use "fastcgi" to start a FastCGI server (if you're planning to use an
+  # external webserver) or "standalone" to start a HTTP server instead.
   type: "standalone"
 
 # VIRTUAL HOSTS CONFIGURATION
 # Changing virtual hosts does not require a restart.
 hosts:
 
-  # Default host: if a client makes a request for an unknown hosts or
-  # without any host (by typing the ip directly).
+  # Default route.
   default: "./sites/default"
 
-  # Uncomment the following line to route client requests for
-  # "foo.example.org" to the "/path/to/foo.example.org/docs" directory.
+  # Uncomment the following line to route client requests for "foo.example.org"
+  # to the "/path/to/foo.example.org/docs" directory.
   # foo.example.org: "/path/to/foo.example.org/docs"
 
   # Uncomment the following line to route client requests for
   # "foo.example.org/bar" to the "/path/to/foo.example.org/docs/foo" directory.
   # foo.example.org/docs: "./sites/default"
 
-  # Uncomment the following line to route client requests for
-  # "bar.example.org" to the "/path/to/bar.example.org/docs" directory.
+  # Uncomment the following line to route client requests for "bar.example.org"
+  # to the "/path/to/bar.example.org/docs" directory.
   # bar.example.org: "/path/to/bar.example.org/docs"
 
