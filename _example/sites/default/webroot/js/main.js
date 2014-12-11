@@ -14,7 +14,6 @@
     if (s != null) {
       s = s.replace(/^\/+/g, '');
       s = s.replace(/\/+$/g, '');
-      console.log(s);
       return s;
     };
     return "";
