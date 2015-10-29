@@ -22,9 +22,8 @@
 package host
 
 import (
-	"fmt"
-	//"github.com/howeyc/fsnotify"
 	"errors"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -233,7 +232,7 @@ func (host *Host) anchor(url, text string) template.HTML {
 }
 
 // guessFile checks for files names and returns a guessed name.
-func guessFile(file string, descend bool) (string, os.FileInfo) {
+func guessFile(file string, descend bool) (string, os.FileInfo, string) {
 	stat, err := os.Stat(file)
 
 	file = strings.TrimRight(file, pathSeparator)
@@ -241,26 +240,26 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 	if descend {
 		if err == nil {
 			if stat.IsDir() {
-				f, s := guessFile(file+pathSeparator+"index", true)
+				f, s, ext := guessFile(file+pathSeparator+"index", true)
 				if s != nil {
-					return f, s
+					return f, s, ext
 				}
 			}
-			return file, stat
+			return file, stat, ""
 		}
 		for _, extension := range extensions {
-			f, s := guessFile(file+extension, false)
+			f, s, _ := guessFile(file+extension, false)
 			if s != nil {
-				return f, s
+				return f, s, extension
 			}
 		}
 	}
 
 	if err == nil {
-		return file, stat
+		return file, stat, ""
 	}
 
-	return "", nil
+	return "", nil, ""
 }
 
 // readFile opens a file and reads its contents, if the file has the .md
@@ -357,7 +356,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// Defining a filename to look for.
 		testFile := docroot + pathSeparator + reqpath
 
-		localFile, stat = guessFile(testFile, true)
+		localFile, stat, extension := guessFile(testFile, true)
 
 		if stat != nil {
 
@@ -383,6 +382,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 			p.FilePath = localFile
 			p.BasePath = req.URL.Path
+			p.IsHTML = extension != ""
 
 			relPath := localFile[len(docroot):]
 
@@ -394,58 +394,64 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				p.BasePath = relPath
 			}
 
-			// Reading contents.
-			content, err := host.readFile(localFile)
+			if p.IsHTML {
+				// Reading contents.
+				content, err := host.readFile(localFile)
 
-			if err == nil {
-				p.Content = template.HTML(content)
-			}
-
-			p.FileDir = strings.TrimRight(p.FileDir, pathSeparator) + pathSeparator
-			p.BasePath = strings.TrimRight(p.BasePath, pathSeparator) + pathSeparator
-
-			// werc-like header and footer.
-			hfile, hstat := guessFile(p.FileDir+"_header", true)
-
-			if hstat != nil {
-				hcontent, herr := host.readFile(hfile)
-				if herr == nil {
-					p.ContentHeader = template.HTML(hcontent)
+				if err == nil {
+					p.Content = template.HTML(content)
 				}
-			}
 
-			if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
-				p.IsHome = true
-			}
+				p.FileDir = strings.TrimRight(p.FileDir, pathSeparator) + pathSeparator
+				p.BasePath = strings.TrimRight(p.BasePath, pathSeparator) + pathSeparator
 
-			// werc-like header and footer.
-			ffile, fstat := guessFile(p.FileDir+"_footer", true)
+				// werc-like header and footer.
+				hfile, hstat, _ := guessFile(p.FileDir+"_header", true)
 
-			if fstat != nil {
-				fcontent, ferr := host.readFile(ffile)
-				if ferr == nil {
-					p.ContentFooter = template.HTML(fcontent)
+				if hstat != nil {
+					hcontent, herr := host.readFile(hfile)
+					if herr == nil {
+						p.ContentHeader = template.HTML(hcontent)
+					}
 				}
-			}
 
-			// Looking for title.
-			if p.Content != "" {
-				found := titlePattern.FindStringSubmatch(string(p.Content))
-				if len(found) > 0 {
-					p.Title = found[1]
+				if strings.Trim(host.Path, pathSeparator) == strings.Trim(req.URL.Path, pathSeparator) {
+					p.IsHome = true
 				}
-			}
 
-			// Building menus.
-			p.CreateBreadCrumb()
-			p.CreateMenu()
-			p.CreateSideMenu()
+				// werc-like header and footer.
+				ffile, fstat, _ := guessFile(p.FileDir+"_footer", true)
 
-			// Applying template.
-			if err = host.Templates["index.tpl"].Execute(w, p); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				status = http.StatusInternalServerError
+				if fstat != nil {
+					fcontent, ferr := host.readFile(ffile)
+					if ferr == nil {
+						p.ContentFooter = template.HTML(fcontent)
+					}
+				}
+
+				// Looking for title.
+				if p.Content != "" {
+					found := titlePattern.FindStringSubmatch(string(p.Content))
+					if len(found) > 0 {
+						p.Title = found[1]
+					}
+				}
+
+				// Building menus.
+				p.CreateBreadCrumb()
+				p.CreateMenu()
+				p.CreateSideMenu()
+
+				// Applying template.
+				if err = host.Templates["index.tpl"].Execute(w, p); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					status = http.StatusInternalServerError
+				} else {
+					status = http.StatusOK
+				}
 			} else {
+				// Serve file for non-HTML documents
+				http.ServeFile(w, req, localFile)
 				status = http.StatusOK
 			}
 
