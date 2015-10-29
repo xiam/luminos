@@ -91,6 +91,9 @@ type Page struct {
 
 	// True if the current document is / (home).
 	IsHome bool
+
+	// True if the current document is HTML
+	IsHTML bool
 }
 
 const (
