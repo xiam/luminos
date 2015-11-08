@@ -22,13 +22,20 @@
 package page
 
 import (
+	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+
+	"github.com/extemporalgenome/slug"
 )
+
+var titlePattern = regexp.MustCompile(`<h([\d])>(.+)</h[\d]>`)
 
 type anchor struct {
 	Text     string
@@ -59,6 +66,9 @@ type Page struct {
 	// The HTML source of the _footer.md or _footer.html file on the current
 	// document's directory.
 	ContentFooter template.HTML
+
+	// Titles holds links to all page subtitles.
+	Titles map[int][]anchor
 
 	// An array that contains names and links of all the items on the document's
 	// root. Names that begin with a dot or an underscore are ignored from the
@@ -294,4 +304,52 @@ func (p *Page) CreateSideMenu() {
 		}
 
 	}
+}
+
+func (p *Page) ProcessContent() {
+	content := string(p.Content)
+	titles := titlePattern.FindAllStringSubmatch(content, -1)
+	for _, title := range titles {
+		if p.Titles == nil {
+			p.Titles = make(map[int][]anchor)
+		}
+		if len(title) == 3 {
+			if level, _ := strconv.Atoi(title[1]); level > 0 {
+				ll := level - 1
+				text := title[2]
+
+				id := slug.Slug(text)
+
+				if id == "" {
+					id = fmt.Sprintf("%05d", level)
+				}
+
+				if p.Titles[ll] == nil {
+					p.Titles[ll] = []anchor{}
+				}
+
+				r := fmt.Sprintf(`<h%d><a href="#" name="%s">%s</a></h%d>`, level, id, text, level)
+				p.Titles[ll] = append(p.Titles[ll], anchor{Text: text, URL: "#" + id})
+
+				content = strings.Replace(content, title[0], r, 1)
+			}
+		}
+	}
+	p.Content = template.HTML(content)
+}
+
+func (p *Page) GetTitlesFromLevel(ll int) []anchor {
+	if p.Titles == nil || p.Titles[ll] == nil {
+		return []anchor{}
+	}
+	return p.Titles[ll]
+}
+
+func (p *Page) URLMatch(s string) bool {
+	re, err := regexp.Compile(s)
+	if err != nil {
+		log.Printf("URLMatch: %q", err)
+		return false
+	}
+	return re.MatchString(p.CurrentPage.URL)
 }

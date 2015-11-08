@@ -50,7 +50,6 @@ const (
 var (
 	// Used to guess when dealing with an external URL.
 	isExternalLinkPattern = regexp.MustCompile(`^[a-zA-Z0-9]+:\/\/`)
-	titlePattern          = regexp.MustCompile(`<h[\d]>(.+)</h`)
 )
 
 // Host is the struct that represents virtual hosts.
@@ -428,18 +427,11 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 
-			// Looking for title.
-			if p.Content != "" {
-				found := titlePattern.FindStringSubmatch(string(p.Content))
-				if len(found) > 0 {
-					p.Title = found[1]
-				}
-			}
-
-			// Building menus.
 			p.CreateBreadCrumb()
 			p.CreateMenu()
 			p.CreateSideMenu()
+
+			p.ProcessContent()
 
 			// Applying template.
 			if err = host.Templates["index.tpl"].Execute(w, p); err != nil {
