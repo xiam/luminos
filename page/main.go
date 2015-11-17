@@ -328,7 +328,7 @@ func (p *Page) ProcessContent() {
 					p.Titles[ll] = []anchor{}
 				}
 
-				r := fmt.Sprintf(`<h%d><a href="#" name="%s">%s</a></h%d>`, level, id, text, level)
+				r := fmt.Sprintf(`<h%d><a href="#%s" name="%s">%s</a></h%d>`, level, id, id, text, level)
 				p.Titles[ll] = append(p.Titles[ll], anchor{Text: text, URL: "#" + id})
 
 				content = strings.Replace(content, title[0], r, 1)
