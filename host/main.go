@@ -129,7 +129,7 @@ func readFile(file string) (string, error) {
 	var err error
 
 	if buf, err = ioutil.ReadFile(file); err != nil {
-		return "", err
+		return "", fmt.Errorf("Could not read file %s: %s", file, err.Error())
 	}
 
 	return string(buf), nil
@@ -700,9 +700,16 @@ func New(name string, root string) (*Host, error) {
 		}
 
 		host.funcMap = template.FuncMap{
-			"url":      func(s string) string { return host.url(s) },
-			"anchor":   func(a, b string) template.HTML { return host.anchor(a, b) },
-			"asset":    func(s string) string { return host.asset(s) },
+			"url":    func(s string) string { return host.url(s) },
+			"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
+			"asset":  func(s string) string { return host.asset(s) },
+			"include": func(f string) string {
+				s, err := readFile(host.DocumentRoot + "/" + f)
+				if err != nil {
+					log.Printf("readFile: %q", err)
+				}
+				return s
+			},
 			"setting":  func(s string) interface{} { return host.setting(s) },
 			"settings": func(s string) []interface{} { return host.settings(s) },
 			"js":       javascriptText,
