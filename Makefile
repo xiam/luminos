@@ -36,3 +36,6 @@ release: require-version
 
 clean:
 	@rm -rf $(GOX_OUTPUT_DIR)
+
+docker:
+	docker build -t menteslibres/luminos .
