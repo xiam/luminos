@@ -24,6 +24,7 @@ package host
 import (
 	"fmt"
 	//"github.com/howeyc/fsnotify"
+	"bytes"
 	"errors"
 	"html/template"
 	"io/ioutil"
@@ -84,6 +85,7 @@ var extensions = []string{
 	".md",
 	".html",
 	".txt",
+	".md.tpl",
 }
 
 // fixDeprecatedSyntax fixes old template syntax.
@@ -265,12 +267,24 @@ func guessFile(file string, descend bool) (string, os.FileInfo) {
 // readFile opens a file and reads its contents, if the file has the .md
 // extension the contents are parsed and HTML is returned.
 func (host *Host) readFile(file string) ([]byte, error) {
-
 	var buf []byte
 	var err error
 
 	if buf, err = ioutil.ReadFile(file); err != nil {
 		return nil, err
+	}
+
+	if strings.HasSuffix(file, ".tpl") {
+		var out bytes.Buffer
+		tpl, err := template.New("").Funcs(host.funcMap).Parse(string(buf))
+		if err != nil {
+			return nil, err
+		}
+		if err := tpl.Execute(&out, nil); err != nil {
+			return nil, err
+		}
+		file = file[:len(file)-4]
+		buf = out.Bytes()
 	}
 
 	if strings.HasSuffix(file, ".md") {
