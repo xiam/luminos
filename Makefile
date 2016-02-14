@@ -3,7 +3,7 @@ GOX_OUTPUT_DIR      ?= bin
 GH_ACCESS_TOKEN     ?= Missing access token.
 MESSAGE             ?= Latest release.
 
-all: clean
+binaries: clean
 	@mkdir -p $(GOX_OUTPUT_DIR) && \
 	gox -osarch=$(GOX_OSARCH) -output "$(GOX_OUTPUT_DIR)/{{.Dir}}_{{.OS}}_{{.Arch}}" && \
 	gzip bin/luminos_darwin_* && \
@@ -14,7 +14,7 @@ all: clean
 require-version:
 	@if [[ -z "$$VERSION" ]]; then echo "Missing \$$VERSION"; exit 1; fi
 
-release: require-version
+release: binaries require-version
 	@RESP=$$(curl --silent --data '{ \
 		"tag_name": "v$(VERSION)", \
 		"name": "v$(VERSION)", \
@@ -32,7 +32,8 @@ release: require-version
 		MIME_TYPE=$$(file --mime-type bin/$$ASSET | awk '{print $$2}') && \
 		curl --silent -H "Content-Type: $$MIME_TYPE" --data-binary @bin/$$ASSET $$UPLOAD_URL > /dev/null && \
 		echo "-> $$ASSET OK." \
-	; done
+	; done && \
+	$(MAKE) docker-push
 
 clean:
 	@rm -rf $(GOX_OUTPUT_DIR)
@@ -40,6 +41,6 @@ clean:
 docker:
 	docker build -t menteslibres/luminos .
 
-docker-push: require-version
+docker-push: docker require-version
 	docker tag menteslibres/luminos menteslibres/luminos:$(VERSION)
 	docker push menteslibres/luminos:$(VERSION)
