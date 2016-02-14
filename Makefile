@@ -39,3 +39,6 @@ clean:
 
 docker:
 	docker build -t menteslibres/luminos .
+
+docker-push:
+	docker push menteslibres/luminos
