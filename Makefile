@@ -40,5 +40,6 @@ clean:
 docker:
 	docker build -t menteslibres/luminos .
 
-docker-push:
-	docker push menteslibres/luminos
+docker-push: require-version
+	docker tag menteslibres/luminos menteslibres/luminos:$(VERSION)
+	docker push menteslibres/luminos:$(VERSION)
