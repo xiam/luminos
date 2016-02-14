@@ -143,14 +143,16 @@ func (host *Host) Close() {
 }
 
 // asset returns a relative URL.
-func (host *Host) asset(url string) string {
-	if host.isExternalLink(url) == false {
-		if host.Path == "" {
-			return "/" + strings.TrimLeft(url, "/")
+func (host *Host) asset(assetURL string) string {
+	if !host.isExternalLink(assetURL) {
+		assetURL = strings.TrimLeft(assetURL, "/")
+		p := strings.Trim(host.Path, "/")
+		if p == "" {
+			return "/" + assetURL
 		}
-		return "/" + host.Path + "/" + strings.TrimLeft(url, "/")
+		return "/" + p + "/" + assetURL
 	}
-	return url
+	return assetURL
 }
 
 // url returns an absolute URL.
@@ -303,7 +305,6 @@ func chunk(value string) string {
 
 // ServeHTTP reads a request and creates an appropriate response.
 func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-
 	var localFile string
 
 	// TODO: Fix this non-critical race condition.  We need to save some
@@ -319,7 +320,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	size := -1
 
 	// Requested path
-	reqpath := strings.Trim(req.URL.Path, "/")
+	reqpath := strings.TrimRight(req.URL.Path, "/")
 
 	// Stripping path
 	index := len(host.Path)
@@ -330,7 +331,7 @@ func (host *Host) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		reqpath = reqpath[index:]
 	}
 
-	reqpath = strings.Trim(reqpath, "/")
+	reqpath = strings.TrimRight(reqpath, "/")
 
 	// Trying to match a file on webroot/
 	webrootdir := to.String(host.Settings.Get("content", "webroot"))
@@ -694,69 +695,62 @@ func New(name string, root string) (*Host, error) {
 
 	_, err := os.Stat(root)
 
-	if err == nil {
+	if err != nil {
+		log.Printf("Error reading directory %s: %q\n", root, err)
+		log.Printf("Checkout an example directory at https://github.com/xiam/luminos/tree/master/default\n")
 
-		name = strings.Trim(name, "/")
-
-		route := "/"
-
-		index := strings.Index(name, "/")
-
-		if index > 0 {
-			route = name[index:]
-		}
-
-		host := &Host{
-			Name:         strings.Trim(name, "/"),
-			Path:         strings.Trim(route, "/"),
-			DocumentRoot: root,
-			Templates:    make(map[string]*template.Template),
-		}
-
-		host.funcMap = template.FuncMap{
-			"url":    func(s string) string { return host.url(s) },
-			"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
-			"asset":  func(s string) string { return host.asset(s) },
-			"include": func(f string) string {
-				s, err := readFile(host.DocumentRoot + "/" + f)
-				if err != nil {
-					log.Printf("readFile: %q", err)
-				}
-				return s
-			},
-			"setting":  func(s string) interface{} { return host.setting(s) },
-			"settings": func(s string) []interface{} { return host.settings(s) },
-			"js":       javascriptText,
-			"html":     htmlText,
-		}
-
-		// Watcher
-		host.fileWatcher()
-
-		// Loading host settings
-		err := host.loadSettings()
-
-		if err != nil {
-			log.Printf("Could not start host: %s\n", name)
-			return nil, err
-		}
-
-		// Loading templates.
-		err = host.loadTemplates()
-
-		if err != nil {
-			log.Printf("Could not start host: %s\n", name)
-			return nil, err
-		}
-
-		log.Printf("Routing: %s -> %s\n", name, root)
-
-		return host, nil
-
+		return nil, err
 	}
 
-	log.Printf("Error reading directory %s: %q\n", root, err)
-	log.Printf("Checkout an example directory at https://github.com/xiam/luminos/tree/master/default\n")
+	route := "/"
+	name = strings.TrimRight(name, "/")
 
-	return nil, err
+	index := strings.Index(name, "/")
+	if index > -1 {
+		route = name[index:]
+	}
+
+	host := &Host{
+		Name:         strings.TrimRight(name, "/"),
+		Path:         strings.TrimRight(route, "/"),
+		DocumentRoot: root,
+		Templates:    make(map[string]*template.Template),
+	}
+
+	host.funcMap = template.FuncMap{
+		"url":    func(s string) string { return host.url(s) },
+		"anchor": func(a, b string) template.HTML { return host.anchor(a, b) },
+		"asset":  func(s string) string { return host.asset(s) },
+		"include": func(f string) string {
+			s, err := readFile(host.DocumentRoot + "/" + f)
+			if err != nil {
+				log.Printf("readFile: %q", err)
+			}
+			return s
+		},
+		"setting":  func(s string) interface{} { return host.setting(s) },
+		"settings": func(s string) []interface{} { return host.settings(s) },
+		"js":       javascriptText,
+		"html":     htmlText,
+	}
+
+	// Watcher
+	host.fileWatcher()
+
+	// Loading host settings
+	if err = host.loadSettings(); err != nil {
+		log.Printf("Could not start host: %s\n", name)
+		return nil, err
+	}
+
+	// Loading templates.
+	if err = host.loadTemplates(); err != nil {
+		log.Printf("Could not start host: %s\n", name)
+		return nil, err
+	}
+
+	log.Printf("Routing: %s -> %s\n", name, root)
+
+	return host, nil
+
 }

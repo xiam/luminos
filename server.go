@@ -69,7 +69,14 @@ func route(req *http.Request) *host.Host {
 
 	for key := range hosts {
 		lkey := len(key)
-		if lkey >= len(match) && lkey <= len(path) {
+		if key[0] == '/' {
+			if lkey <= len(req.URL.Path) {
+				if req.URL.Path[0:lkey] == key {
+					match = key
+				}
+			}
+		}
+		if lkey <= len(path) {
 			if path[0:lkey] == key {
 				match = key
 			}
@@ -78,12 +85,11 @@ func route(req *http.Request) *host.Host {
 
 	// No host matched, let's use the default host.
 	if match == "" {
-		log.Printf("Could not match any host: %s, falling back to the default.\n", req.Host)
+		log.Printf("Path %v could not match any route, falling back to the default.\n", path)
 		match = "default"
 	}
 
 	// Let's verify and return the host.
-
 	if _, ok := hosts[match]; !ok {
 		// Host was not found.
 		log.Printf("Request for unknown host: %s\n", req.Host)
